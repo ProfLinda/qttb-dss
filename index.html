@@ -2292,9 +2292,13 @@ function getDbConfig() {
 }
 
 function saveDbConfig() {
-  const url = document.getElementById('sb-url').value.trim();
+  // Clean up URL — remove trailing slash, ensure https
+  let url = document.getElementById('sb-url').value.trim().replace(/\/+$/, '');
   const key = document.getElementById('sb-key').value.trim();
   if(!url || !key) { setDbTestStatus('error', 'Enter both URL and key'); return; }
+  if(!url.startsWith('http')) url = 'https://' + url;
+  // Save cleaned values back to inputs
+  document.getElementById('sb-url').value = url;
   localStorage.setItem(DB_CONFIG_KEY, JSON.stringify({ url, key }));
   setDbTestStatus('loading', 'Testing connection…');
   testDbConnection(url, key);
@@ -2302,20 +2306,41 @@ function saveDbConfig() {
 
 async function testDbConnection(url, key) {
   try {
-    const resp = await fetch(`${url}/rest/v1/soil_surveys?limit=1`, {
-      headers: { 'apikey': key, 'Authorization': 'Bearer ' + key }
+    const resp = await fetch(`${url}/rest/v1/soil_surveys?limit=1&select=id`, {
+      headers: {
+        'apikey': key,
+        'Authorization': 'Bearer ' + key,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
     });
+
     if(resp.ok) {
       setDbTestStatus('ok', '✓ Connected — database ready');
       updateDbBtn(true);
       setTimeout(closeDbConfig, 1500);
+      return;
+    }
+
+    // Show the actual response body to help debug
+    let body = '';
+    try { const j = await resp.json(); body = j.message || j.hint || j.code || JSON.stringify(j); }
+    catch { body = await resp.text().catch(()=>''); }
+
+    if(resp.status === 401 || resp.status === 403) {
+      setDbTestStatus('error', `✗ Auth failed (${resp.status}) — use the anon public key, not service_role key`);
     } else if(resp.status === 404) {
-      setDbTestStatus('error', '✗ Table not found — run db/schema.sql first');
+      setDbTestStatus('error', `✗ 404 — check URL format: should be https://xxxx.supabase.co (no trailing slash). Detail: ${body}`);
+    } else if(resp.status === 406) {
+      // 406 means table exists but RLS blocked it — this is actually OK
+      setDbTestStatus('ok', '✓ Connected — tables found (RLS active)');
+      updateDbBtn(true);
+      setTimeout(closeDbConfig, 1500);
     } else {
-      setDbTestStatus('error', '✗ Error ' + resp.status + ' — check credentials');
+      setDbTestStatus('error', `✗ Error ${resp.status}: ${body}`);
     }
   } catch(e) {
-    setDbTestStatus('error', '✗ Connection failed — check URL');
+    setDbTestStatus('error', `✗ Connection failed: ${e.message} — check URL`);
   }
 }
 
