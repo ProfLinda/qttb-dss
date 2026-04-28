@@ -2040,50 +2040,128 @@ function clearApiStatus() {
 // Register: https://dataspace.copernicus.eu → Create account → Dashboard → OAuth clients
 // ═══════════════════════════════════════════════════════════════════════════
 
-const CDSE_TOKEN_URL = 'https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token';
+const CDSE_TOKEN_URL   = 'https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token';
 const CDSE_PROCESS_URL = 'https://sh.dataspace.copernicus.eu/api/v1/process';
 
 let copernicusToken = null;
 let tokenExpiry = 0;
+const COP_TOKEN_KEY = 'qttb_cop_token';
+
+function saveCopernicusCredentials() {
+  const clientId = document.getElementById('cop_client_id').value.trim();
+  const clientSecret = document.getElementById('cop_client_secret').value.trim();
+  if(clientId && clientSecret) localStorage.setItem('qttb_cop_creds', JSON.stringify({ clientId, clientSecret }));
+}
+
+function loadCopernicusCredentials() {
+  try {
+    const creds = JSON.parse(localStorage.getItem('qttb_cop_creds') || 'null');
+    if(creds) {
+      document.getElementById('cop_client_id').value = creds.clientId || '';
+      document.getElementById('cop_client_secret').value = creds.clientSecret || '';
+    }
+    // Also restore cached token
+    const stored = JSON.parse(localStorage.getItem(COP_TOKEN_KEY) || 'null');
+    if(stored && stored.token && Date.now() < stored.expiry) {
+      copernicusToken = stored.token;
+      tokenExpiry = stored.expiry;
+      const el = document.getElementById('cop-api-status');
+      if(el) { el.textContent = 'Token cached — ready to fetch'; el.style.color = '#2B5F3F'; }
+    }
+  } catch(e) {}
+}
 
 async function getCopernicusToken() {
   const clientId = document.getElementById('cop_client_id').value.trim();
   const clientSecret = document.getElementById('cop_client_secret').value.trim();
   if(!clientId || !clientSecret) return null;
-
   if(copernicusToken && Date.now() < tokenExpiry) return copernicusToken;
 
+  // Check cached token in localStorage
+  try {
+    const stored = JSON.parse(localStorage.getItem(COP_TOKEN_KEY) || 'null');
+    if(stored && stored.token && Date.now() < stored.expiry) {
+      copernicusToken = stored.token; tokenExpiry = stored.expiry;
+      return copernicusToken;
+    }
+  } catch(e) {}
+
+  // Try direct fetch — CDSE token endpoint CORS policy varies
   try {
     const resp = await fetch(CDSE_TOKEN_URL, {
-      method: 'POST',
+      method: 'POST', mode: 'cors',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: clientId,
-        client_secret: clientSecret,
-      })
+      body: new URLSearchParams({ grant_type: 'client_credentials', client_id: clientId, client_secret: clientSecret })
     });
-    if(!resp.ok) throw new Error('Auth failed: ' + resp.status);
-    const data = await resp.json();
-    copernicusToken = data.access_token;
-    tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
-    return copernicusToken;
+    if(resp.ok) {
+      const data = await resp.json();
+      copernicusToken = data.access_token;
+      tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
+      localStorage.setItem(COP_TOKEN_KEY, JSON.stringify({ token: copernicusToken, expiry: tokenExpiry }));
+      saveCopernicusCredentials();
+      return copernicusToken;
+    } else {
+      const err = await resp.json().catch(()=>({}));
+      throw new Error(`${resp.status} ${err.error_description || err.error || ''}`);
+    }
   } catch(e) {
+    if(e.message.includes('Failed to fetch') || e.message.includes('NetworkError') || e.message.toLowerCase().includes('cors')) {
+      showCorsTokenHelper(clientId, clientSecret);
+    } else {
+      const el = document.getElementById('cop-api-status');
+      if(el) { el.textContent = '\u2717 Auth error: ' + e.message; el.style.color = '#C0392B'; }
+    }
     return null;
   }
 }
 
+function showCorsTokenHelper(clientId, clientSecret) {
+  if(document.getElementById('cop-cors-helper')) return;
+  const curlCmd = `curl -s -X POST "${CDSE_TOKEN_URL}" -H "Content-Type: application/x-www-form-urlencoded" -d "grant_type=client_credentials&client_id=${clientId}&client_secret=${clientSecret}" | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])"`;
+  const helper = document.createElement('div');
+  helper.id = 'cop-cors-helper';
+  helper.style.cssText = 'margin-top:10px;padding:12px;background:#FDF4E3;border:1px solid #e0c080;border-radius:8px;font-size:11px;color:#633806;line-height:1.8';
+  helper.innerHTML = `<strong>Token endpoint blocked by browser</strong> — run this once in your terminal to get a 1-hour token:<br>
+    <code style="display:block;background:#fff;padding:8px;border-radius:4px;margin:6px 0;word-break:break-all;font-size:10px;color:#1a1916;white-space:pre-wrap">${curlCmd.replace(/&/g,'&amp;')}</code>
+    Paste the token here:<br>
+    <div style="display:flex;gap:6px;margin-top:4px">
+      <input type="text" id="cop-manual-token" placeholder="paste access_token (eyJ...)" style="flex:1;font-size:10px;padding:5px 8px;border:1px solid #e0c080;border-radius:4px">
+      <button onclick="saveManualToken()" style="background:#C47A1A;color:#fff;border:none;padding:5px 12px;border-radius:4px;cursor:pointer;font-size:11px;white-space:nowrap">Save &amp; use</button>
+    </div>
+    <span style="font-size:11px;color:#2B5F3F" id="manual-token-status"></span>`;
+  const card = document.getElementById('cop_client_secret').closest('.card');
+  if(card) card.appendChild(helper);
+  const el = document.getElementById('cop-api-status');
+  if(el) { el.textContent = 'CORS block — see curl command below'; el.style.color = '#B8720A'; }
+}
+
+function saveManualToken() {
+  const token = document.getElementById('cop-manual-token').value.trim();
+  if(!token || !token.startsWith('eyJ')) { document.getElementById('manual-token-status').textContent = ' invalid token format'; return; }
+  let expiry = Date.now() + 3600000;
+  try { const p = JSON.parse(atob(token.split('.')[1])); if(p.exp) expiry = p.exp * 1000; } catch(e) {}
+  copernicusToken = token; tokenExpiry = expiry;
+  localStorage.setItem(COP_TOKEN_KEY, JSON.stringify({ token, expiry }));
+  document.getElementById('manual-token-status').textContent = '\u2713 Token saved (' + Math.round((expiry - Date.now())/60000) + ' min remaining)';
+  document.getElementById('cop-api-status').textContent = '\u2713 Token ready — click Fetch indices';
+  document.getElementById('cop-api-status').style.color = '#2B5F3F';
+}
+
 async function testCopernicusAPI() {
   const statusEl = document.getElementById('cop-api-status');
-  statusEl.textContent = 'Testing…';
-  statusEl.style.color = '#B8720A';
+  statusEl.textContent = 'Getting token…'; statusEl.style.color = '#B8720A';
+  saveCopernicusCredentials();
   const token = await getCopernicusToken();
-  if(token) {
-    statusEl.textContent = '✓ Connected — token valid';
+  if(!token) return;
+  try {
+    const resp = await fetch('https://sh.dataspace.copernicus.eu/api/v1/catalog/1.0.0/collections', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    statusEl.textContent = resp.ok ? '\u2713 Connected — Sentinel Hub ready' : '\u2713 Token valid (status ' + resp.status + ')';
     statusEl.style.color = '#2B5F3F';
-  } else {
-    statusEl.textContent = '✗ Not connected — check credentials';
-    statusEl.style.color = '#C0392B';
+  } catch(e) {
+    statusEl.textContent = '\u2713 Token obtained — ready to fetch';
+    statusEl.style.color = '#2B5F3F';
   }
 }
 
@@ -2091,13 +2169,8 @@ function updateCopernicusStatus() {
   const hasId = document.getElementById('cop_client_id').value.trim();
   const hasSecret = document.getElementById('cop_client_secret').value.trim();
   const el = document.getElementById('cop-api-status');
-  if(hasId && hasSecret) {
-    el.textContent = 'Credentials entered — click Test';
-    el.style.color = '#B8720A';
-  } else {
-    el.textContent = 'Not configured';
-    el.style.color = '#6B6860';
-  }
+  if(hasId && hasSecret) { el.textContent = 'Credentials entered — click Test connection'; el.style.color = '#B8720A'; }
+  else { el.textContent = 'Not configured'; el.style.color = '#6B6860'; }
 }
 
 async function fetchCopernicus() {
@@ -2624,6 +2697,7 @@ async function deleteDbRecord(id) {
 buildHorizons();
 updateRecordCount();
 updateProgress();
+loadCopernicusCredentials();
 
 document.getElementById('meteo_date').value = document.getElementById('survey_date').value;
 document.getElementById('survey_date').addEventListener('change', function() {
