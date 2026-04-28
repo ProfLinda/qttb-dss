@@ -2091,7 +2091,7 @@ async function getCopernicusToken() {
     const resp = await fetch(CDSE_TOKEN_URL, {
       method: 'POST', mode: 'cors',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ grant_type: 'client_credentials', client_id: clientId, client_secret: clientSecret })
+      body: `grant_type=client_credentials&client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}`
     });
     if(resp.ok) {
       const data = await resp.json();
