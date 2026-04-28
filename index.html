@@ -1,0 +1,2609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QTTB Field Survey Form</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F5F3EE;
+    --surface: #FFFFFF;
+    --border: #D8D4CC;
+    --border-light: #EAE7E0;
+    --text: #1A1916;
+    --text-muted: #6B6860;
+    --text-hint: #9E9B95;
+    --accent: #2B5F3F;
+    --accent-light: #E8F2EC;
+    --accent-text: #1D4029;
+    --amber: #B8720A;
+    --amber-light: #FDF3E0;
+    --red: #C0392B;
+    --red-light: #FDECEB;
+    --radius: 6px;
+    --radius-lg: 10px;
+    --font: 'IBM Plex Sans', sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--accent);
+    color: #fff;
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .header-dot {
+    width: 8px; height: 8px;
+    background: #7EC9A2;
+    border-radius: 50%;
+  }
+  .header-title {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #fff;
+  }
+  .header-sub {
+    font-size: 11px;
+    color: rgba(255,255,255,0.6);
+    font-family: var(--mono);
+  }
+  .header-actions { display: flex; gap: 8px; }
+  .btn {
+    font-family: var(--font);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: opacity 0.15s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn-ghost { background: rgba(255,255,255,0.12); color: #fff; border-color: rgba(255,255,255,0.25); }
+  .btn-white { background: #fff; color: var(--accent-text); }
+  .btn-accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-outline { background: transparent; color: var(--text); border-color: var(--border); }
+  .loc-btn {
+    font-family: var(--font); font-size: 12px; font-weight: 500;
+    padding: 5px 13px; border-radius: 20px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--ink); cursor: pointer;
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .loc-btn:hover { border-color: #2B5F3F; background: #E8F2EC; color: #1D4029; }
+  .loc-btn.active { border-color: #2B5F3F; background: #2B5F3F; color: #fff; }
+  input.api-filled, select.api-filled { border-color: #2B5F3F !important; background: #E8F2EC !important; }
+  .btn-danger { background: var(--red-light); color: var(--red); border-color: #f0c0bc; }
+
+  /* TABS */
+  .tab-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex;
+    gap: 0;
+  }
+  .tab {
+    font-size: 13px;
+    font-weight: 400;
+    padding: 14px 20px 13px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+    transition: color 0.15s, border-color 0.15s;
+    user-select: none;
+  }
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    font-weight: 500;
+  }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  /* LAYOUT */
+  .container { max-width: 900px; margin: 0 auto; padding: 28px 24px 60px; }
+
+  /* PROGRESS BAR */
+  .progress-bar-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: 14px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .progress-label { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+  .progress-track {
+    flex: 1;
+    height: 4px;
+    background: var(--border-light);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+  .progress-pct { font-size: 12px; font-family: var(--mono); color: var(--accent); min-width: 34px; text-align: right; }
+
+  /* SECTION CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px 22px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title-dot {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* FIELD GRIDS */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; }
+  .grid-auto { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+  .mt { margin-top: 12px; }
+
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 11px; color: var(--text-muted); font-weight: 400; }
+  .field .hint { font-size: 10px; color: var(--text-hint); }
+
+  input[type=text], input[type=number], input[type=date], input[type=email], select, textarea {
+    font-family: var(--font);
+    font-size: 13px;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 7px 10px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+    background: #fff;
+  }
+  textarea { resize: vertical; min-height: 72px; }
+  select { cursor: pointer; }
+
+  /* HORIZON TABLE */
+  .table-wrap { overflow-x: auto; }
+  table.hor { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+  table.hor th {
+    text-align: left;
+    padding: 6px 5px;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  table.hor td { padding: 4px 3px; border-bottom: 1px solid var(--border-light); }
+  table.hor td:first-child { font-size: 11px; color: var(--text-muted); font-weight: 500; padding-left: 0; white-space: nowrap; }
+  table.hor td input, table.hor td select {
+    font-size: 11px;
+    padding: 5px 4px;
+    min-width: 0;
+    background: var(--bg);
+  }
+
+  /* METEO UNITS BADGE */
+  .unit-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-family: var(--mono);
+    background: var(--accent-light);
+    color: var(--accent-text);
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-left: 4px;
+  }
+
+  /* STATUS BANNER */
+  .status-banner {
+    display: none;
+    padding: 10px 16px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    margin-bottom: 16px;
+    align-items: center;
+    gap: 10px;
+  }
+  .status-banner.success { display: flex; background: var(--accent-light); color: var(--accent-text); border: 1px solid #b0d9be; }
+  .status-banner.error { display: flex; background: var(--red-light); color: var(--red); border: 1px solid #f0c0bc; }
+
+  /* RECORD LIST */
+  .record-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    margin-bottom: 6px;
+    background: var(--surface);
+    font-size: 13px;
+  }
+  .record-item:hover { border-color: var(--border); }
+  .record-meta { font-size: 11px; color: var(--text-muted); font-family: var(--mono); margin-top: 2px; }
+  .record-actions { display: flex; gap: 6px; }
+
+  /* EXPORT PANEL */
+  .export-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px 22px;
+    margin-bottom: 16px;
+  }
+  .export-btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+
+  /* BOTTOM BAR */
+  .bottom-bar {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 14px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    bottom: 0;
+  }
+  .bottom-left { display: flex; gap: 10px; align-items: center; }
+  .bottom-right { display: flex; gap: 10px; }
+  .record-count {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+  }
+
+  /* VALIDATION */
+  input.invalid, select.invalid { border-color: var(--red); background: var(--red-light); }
+
+  /* SEPARATOR */
+  .sep { height: 1px; background: var(--border-light); margin: 14px 0; }
+
+  /* READONLY REVIEW */
+  .review-table { width: 100%; font-size: 13px; border-collapse: collapse; }
+  .review-table td { padding: 6px 0; border-bottom: 1px solid var(--border-light); }
+  .review-table td:first-child { color: var(--text-muted); width: 200px; font-size: 12px; }
+  .review-table td:last-child { font-weight: 400; }
+
+  @media (max-width: 640px) {
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr 1fr; }
+    .container { padding: 16px 12px 80px; }
+    .header { padding: 0 16px; }
+    .tab-bar { padding: 0 12px; }
+    .tab { padding: 12px 14px 11px; font-size: 12px; }
+    .bottom-bar { padding: 12px 16px; }
+  }
+</style>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    #tab-map { display:none; }
+    .map-tab-wrap { height: calc(100vh - 130px); display:flex; flex-direction:column; padding: 16px 24px; gap:12px; max-width:1200px; margin:0 auto; }
+    #qttb-map { flex:1; border-radius: 10px; border: 1px solid #D8D4CC; overflow:hidden; min-height: 400px; }
+    .map-layers { display:flex; gap:8px; flex-wrap:wrap; align-items:center; font-size:12px; }
+    .layer-toggle { display:flex; align-items:center; gap:5px; padding:4px 10px; border:1px solid #D8D4CC; border-radius:20px; cursor:pointer; background:#fff; color:#6B6860; transition:all 0.15s; user-select:none; }
+    .layer-toggle.on { background:#E8F2EC; border-color:#2B5F3F; color:#1D4029; }
+    .layer-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .map-info { background:#fff; border:1px solid #D8D4CC; border-radius:6px; padding:8px 14px; font-size:11px; color:#6B6860; display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+    .map-info span { font-family:'IBM Plex Mono',monospace; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand">
+    <div class="header-dot"></div>
+    <div>
+      <div class="header-title">QTTB Field Survey</div>
+      <div class="header-sub">Soil Research Institute — Albania Land Use Policy</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-ghost" onclick="showDbConfig()" id="db-btn" title="Configure Supabase database">⚙ Database</button>
+    <label class="btn btn-ghost" style="cursor:pointer">
+      Import JSON
+      <input type="file" accept=".json" style="display:none" onchange="importJSON(this)">
+    </label>
+    <button class="btn btn-ghost" onclick="loadRef133()">Load Ref.133 sample</button>
+    <button class="btn btn-ghost" onclick="clearForm()">Clear form</button>
+    <button class="btn btn-white" onclick="saveRecord()">Save record</button>
+  </div>
+
+  <!-- SUPABASE CONFIG MODAL -->
+  <div id="db-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:12px; padding:24px; max-width:520px; width:90%; box-shadow:0 8px 40px rgba(0,0,0,0.2); font-family:'IBM Plex Sans',sans-serif;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <strong style="font-size:15px">Database connection — Supabase</strong>
+        <button onclick="closeDbConfig()" style="background:none; border:none; font-size:20px; cursor:pointer; color:#9A9890;">×</button>
+      </div>
+      <p style="font-size:12px; color:#6B6860; margin-bottom:14px; line-height:1.6">
+        Free PostgreSQL database. Register at <strong>app.supabase.com</strong>, create a project,
+        run <code style="background:#F5F3EE; padding:1px 5px; border-radius:3px;">db/schema.sql</code>,
+        then paste your credentials below.
+      </p>
+      <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
+        <div>
+          <label style="font-size:11px; color:#6B6860; display:block; margin-bottom:4px;">Project URL</label>
+          <input type="text" id="sb-url" placeholder="https://xxxxxxxxxxxx.supabase.co"
+            style="width:100%; font-size:13px; padding:8px 10px; border:1px solid #D8D4CC; border-radius:6px; box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:11px; color:#6B6860; display:block; margin-bottom:4px;">Anon public key</label>
+          <input type="password" id="sb-key" placeholder="eyJhbGci..."
+            style="width:100%; font-size:13px; padding:8px 10px; border:1px solid #D8D4CC; border-radius:6px; box-sizing:border-box;">
+        </div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <button onclick="saveDbConfig()" style="background:#2B5F3F; color:#fff; border:none; padding:8px 18px; border-radius:6px; font-size:13px; cursor:pointer; font-family:inherit;">Save &amp; test</button>
+        <button onclick="closeDbConfig()" style="background:transparent; border:1px solid #D8D4CC; padding:8px 16px; border-radius:6px; font-size:13px; cursor:pointer; font-family:inherit;">Cancel</button>
+        <span id="db-test-status" style="font-size:11px; font-family:'IBM Plex Mono',monospace; color:#6B6860;"></span>
+      </div>
+      <div style="margin-top:14px; padding-top:14px; border-top:1px solid #EAE7E0; font-size:11px; color:#6B6860; line-height:1.7;">
+        <strong>Setup steps:</strong><br>
+        1. <a href="https://app.supabase.com" target="_blank" style="color:#2B5F3F">app.supabase.com</a> → New project → Frankfurt region<br>
+        2. SQL Editor → paste and run <code>db/schema.sql</code><br>
+        3. Settings → API → copy Project URL and anon key<br>
+        4. Records save to Supabase automatically once connected.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tab-bar">
+  <div class="tab active" onclick="switchTab('soil', this)">Soil &amp; land survey</div>
+  <div class="tab" onclick="switchTab('meteo', this)">Meteo variables</div>
+  <div class="tab" onclick="switchTab('records', this)">Saved records</div>
+  <div class="tab" onclick="switchTab('map', this)">GIS Map</div>
+</div>
+
+<div class="container">
+
+  <div id="status-banner" class="status-banner"></div>
+
+  <!-- ===== SOIL TAB ===== -->
+  <div id="tab-soil">
+
+    <div class="progress-bar-wrap">
+      <span class="progress-label">Form completion</span>
+      <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      <span class="progress-pct" id="progress-pct">0%</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot"></span>Site identification</div>
+
+      <!-- LOCATION SELECTOR -->
+      <div style="margin-bottom:14px; padding:12px 14px; background:#F5F3EE; border:1px solid #D8D4CC; border-radius:8px;">
+        <div style="font-size:11px; font-weight:500; color:#1A1916; margin-bottom:8px;">Select location to auto-fill GPS &amp; area</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <!-- QTTB production areas -->
+          <button class="loc-btn" onclick="selectLocation('fushe_kruje')" id="loc-fushe_kruje">
+            📍 Fushë Krujë <span style="font-size:9px; opacity:0.7">ATTC · HQ</span>
+          </button>
+          <button class="loc-btn" onclick="selectLocation('korce')" id="loc-korce">
+            🍎 Korçë <span style="font-size:9px; opacity:0.7">Apple</span>
+          </button>
+          <button class="loc-btn" onclick="selectLocation('lushnje')" id="loc-lushnje">
+            🍅 Lushnje <span style="font-size:9px; opacity:0.7">Tomato</span>
+          </button>
+          <button class="loc-btn" onclick="selectLocation('vlore')" id="loc-vlore">
+            🫒 Vlorë <span style="font-size:9px; opacity:0.7">Olive</span>
+          </button>
+          <span style="border-left:1px solid #D8D4CC; margin:0 2px;"></span>
+          <!-- Custom commune search -->
+          <input type="text" id="commune-search" placeholder="Or type any commune…"
+            style="font-size:12px; padding:5px 10px; border:1px solid #D8D4CC; border-radius:20px; background:#fff; outline:none; min-width:160px;"
+            oninput="searchCommune(this.value)" list="commune-list">
+          <datalist id="commune-list">
+            <option value="Fushë Krujë">
+            <option value="Prezë">
+            <option value="Krujë">
+            <option value="Korçë">
+            <option value="Lushnje">
+            <option value="Vlorë">
+            <option value="Tiranë">
+            <option value="Durrës">
+            <option value="Shkodër">
+            <option value="Elbasan">
+            <option value="Berat">
+            <option value="Gjirokastër">
+            <option value="Sarandë">
+            <option value="Pogradec">
+            <option value="Kavajë">
+            <option value="Lezhë">
+            <option value="Kukës">
+            <option value="Peshkopi">
+          </datalist>
+        </div>
+        <div id="loc-status" style="font-size:11px; color:#2B5F3F; margin-top:6px; font-family:'IBM Plex Mono',monospace; min-height:16px;"></div>
+      </div>
+
+      <div class="grid-4">
+        <div class="field">
+          <label>Commune *</label>
+          <input type="text" id="commune" placeholder="e.g. Lushnje" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Date *</label>
+          <input type="date" id="survey_date" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Surveyor *</label>
+          <input type="text" id="surveyor" placeholder="Full name" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Ref. No. *</label>
+          <input type="text" id="ref_no" placeholder="e.g. AL-24-001" oninput="updateProgress()">
+        </div>
+      </div>
+      <div class="grid-4 mt">
+        <div class="field">
+          <label>GPS E (longitude)</label>
+          <input type="number" id="gps_e" step="0.000001" placeholder="20.123456" oninput="updateProgress(); clearApiStatus()">
+        </div>
+        <div class="field">
+          <label>GPS N (latitude)</label>
+          <input type="number" id="gps_n" step="0.000001" placeholder="41.123456" oninput="updateProgress(); clearApiStatus()">
+        </div>
+        <div class="field">
+          <label>Slope %</label>
+          <input type="number" id="slope_pct" step="0.1" min="0" placeholder="e.g. 5.5" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Slope class – T</label>
+          <select id="slope_class" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="1">1 — &lt;3 (+ low microtopo)</option>
+            <option value="2">2 — 3–12</option>
+            <option value="3">3 — 13–25</option>
+            <option value="4">4 — &gt;25</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- ASIG API AUTO-FILL BAR -->
+      <div id="asig-bar" style="margin-top:12px; padding:10px 14px; background:#F5F3EE; border:1px solid #D8D4CC; border-radius:8px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div style="font-size:11px; color:#6B6860; flex:1; min-width:180px;">
+          <strong style="color:#1A1916">ASIG auto-fill</strong> — enter GPS above then click to pull land use, soil type &amp; suitability from live QTTB layers
+        </div>
+        <button class="btn btn-outline" style="font-size:11px" onclick="fetchASIG()">
+          ⬇ Fill from ASIG · qttb/ows
+        </button>
+        <div id="asig-status" style="font-size:11px; font-family:'IBM Plex Mono',monospace; color:#6B6860; min-width:120px"></div>
+      </div>
+      <!-- API-filled field indicators -->
+      <div id="asig-filled-fields" style="display:none; margin-top:8px; padding:8px 14px; background:#E8F2EC; border:1px solid #b0d9be; border-radius:6px; font-size:11px; color:#1D4029; line-height:1.6"></div>
+
+      <div class="grid-3 mt">
+        <div class="field">
+          <label>QTTB area / crop *</label>
+          <select id="qttb_area" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="korce_apple">Korçë — Apple</option>
+            <option value="lushnje_tomato">Lushnje — Tomato</option>
+            <option value="vlore_olive">Vlorë — Olive</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Landform / position</label>
+          <select id="landform" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="1">1 — Broad plain / terrace</option>
+            <option value="2">2 — Narrow valley / undulating / footslopes</option>
+            <option value="3">3 — Rolling – hilly</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Landform class</label>
+          <input type="text" id="landform_class" placeholder="Describe if terraced" oninput="updateProgress()">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot"></span>Water, irrigation &amp; drainage</div>
+      <div class="grid-4">
+        <div class="field">
+          <label>Water-table, cm</label>
+          <input type="text" id="water_table" placeholder="e.g. 80 or N" oninput="updateProgress()">
+          <span class="hint">Enter N if none</span>
+        </div>
+        <div class="field">
+          <label>Irrigation system</label>
+          <select id="irrigation_system" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="0">0 — None</option>
+            <option value="1">1 — Partly functional</option>
+            <option value="2">2 — Fully functional</option>
+            <option value="3">3 — Non-functional</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Irrigation type</label>
+          <select id="irrigation_type" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="S">S — State</option>
+            <option value="P">P — Private</option>
+            <option value="F">F — Surface</option>
+            <option value="O">O — Overhead</option>
+            <option value="D">D — Drip</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Soil drainage class – w</label>
+          <select id="drainage_class" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="1">1 — Well–Moderate</option>
+            <option value="2">2 — Imperfect / Functional drains</option>
+            <option value="3">3 — Poor</option>
+            <option value="4">4 — Very poor / waterlogged</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-4 mt">
+        <div class="field">
+          <label>Drainage channels</label>
+          <select id="drainage_channels" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="0">0 — None</option>
+            <option value="1">1 — Part-functional</option>
+            <option value="2">2 — Fully functional</option>
+            <option value="3">3 — Non-functional</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Underdrains</label>
+          <select id="underdrains" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="0">0 — None</option>
+            <option value="1">1 — Not known</option>
+            <option value="2">2 — Present, functional</option>
+            <option value="3">3 — Present, non-functional</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Brazda</label>
+          <select id="brazda" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="Y">Y — Present</option>
+            <option value="N">N — None</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Flood risk class – F</label>
+          <select id="flood_risk" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="0">0 — None</option>
+            <option value="1">1 — Low</option>
+            <option value="2">2 — Moderate</option>
+            <option value="3">3 — High</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot"></span>Land cover &amp; erosion</div>
+      <div class="grid-3">
+        <div class="field">
+          <label>Land cover / use</label>
+          <select id="land_cover" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="1">1 — Fruit trees</option>
+            <option value="2">2 — Vines</option>
+            <option value="3">3 — Olives</option>
+            <option value="4">4 — Pasture</option>
+            <option value="5">5 — Alfalfa</option>
+            <option value="6">6 — Vegetables</option>
+            <option value="7">7 — Wheat</option>
+            <option value="8">8 — Maize</option>
+            <option value="9">9 — Fallow / grass</option>
+            <option value="10">10 — Unused / abandoned</option>
+            <option value="11">11 — Other (specify)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Land cover class</label>
+          <input type="text" id="land_cover_class" placeholder="Enter class code" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Erosion description</label>
+          <input type="text" id="erosion_desc" placeholder="Describe" oninput="updateProgress()">
+        </div>
+      </div>
+      <div class="grid-3 mt">
+        <div class="field">
+          <label>Actual erosion class – E</label>
+          <select id="erosion_class" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="0">0 — None / slight (&lt;10%)</option>
+            <option value="1">1 — Moderate (10–25%)</option>
+            <option value="2">2 — Severe (26–50%)</option>
+            <option value="3">3 — Very severe (&gt;50%)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Erosion risk class – R</label>
+          <select id="erosion_risk" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="1">1 — Low</option>
+            <option value="2">2 — Moderate</option>
+            <option value="3">3 — High</option>
+            <option value="4">4 — Very high</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Topsoil erodibility (k) class</label>
+          <select id="erodibility" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="1">1 — Low (texture 1, 2)</option>
+            <option value="2">2 — Moderate (texture 3, 4)</option>
+            <option value="3">3 — High (texture 6)</option>
+            <option value="4">4 — Very high (texture 9)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot"></span>Soil auger description — horizons (up to 5)</div>
+      <div class="table-wrap">
+        <table class="hor" id="horizon-table">
+          <thead>
+            <tr>
+              <th style="width:60px">#</th>
+              <th style="width:52px">Horizon</th>
+              <th style="width:64px">Depth cm</th>
+              <th style="width:52px">Thick. cm</th>
+              <th style="width:80px">Colour</th>
+              <th style="width:46px">Mottles O</th>
+              <th style="width:40px">D</th>
+              <th style="width:40px">R-G</th>
+              <th style="width:100px">Texture class</th>
+              <th style="width:86px">TAW group</th>
+              <th style="width:60px">TAW mm/cm</th>
+              <th style="width:80px">Consist.</th>
+              <th style="width:44px">aTAW</th>
+              <th style="width:46px">Stones %</th>
+              <th style="width:44px">St.class</th>
+              <th style="width:52px">St.free %</th>
+              <th style="width:52px">TAW mm</th>
+            </tr>
+          </thead>
+          <tbody id="horizon-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot"></span>Soil classification summary</div>
+      <div class="grid-4">
+        <div class="field">
+          <label>Topsoil texture class – h</label>
+          <select id="topsoil_h" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="1">1 — class 4,5 (Loam, Fine loam)</option>
+            <option value="2">2 — class 6 (Clayey)</option>
+            <option value="3">3 — class 2,3,7,8</option>
+            <option value="4">4 — Loamy sand (LS)</option>
+            <option value="5">5 — Sand (S)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Subsoil texture class – j</label>
+          <select id="subsoil_j" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="1">1 — class 4,5</option>
+            <option value="2">2 — class 6 +/- 4,5</option>
+            <option value="3">3 — class 1,2,3,7,8</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Depth class – d</label>
+          <select id="depth_class" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="1">1 — Deep &gt;120 cm</option>
+            <option value="2">2 — Mod. deep 120–61 cm</option>
+            <option value="3">3 — Shallow 60–30 cm</option>
+            <option value="4">4 — Very shallow &lt;30 cm</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>TAW class – q</label>
+          <select id="taw_class" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="1">1 — High &gt;170 mm</option>
+            <option value="2">2 — Moderate 121–170 mm</option>
+            <option value="3">3 — Low 80–120 mm</option>
+            <option value="4">4 — Very low &lt;80 mm</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-3 mt">
+        <div class="field">
+          <label>TAW at 100 cm (mm)</label>
+          <input type="number" id="taw_100" step="0.1" placeholder="mm" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Soil type / description</label>
+          <input type="text" id="soil_type" placeholder="e.g. Fluvisol, Cambisol" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Flooding info</label>
+          <input type="text" id="flooding_info" placeholder="Season, freq., length" oninput="updateProgress()">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot"></span>Qualitative indicators (DSS)</div>
+      <div class="grid-3">
+        <div class="field">
+          <label>Plant health status</label>
+          <select id="plant_health" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="1">1 — Healthy / vigorous</option>
+            <option value="2">2 — Mild stress</option>
+            <option value="3">3 — Moderate stress / symptoms</option>
+            <option value="4">4 — Severe stress / die-back</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Disease / pest observed</label>
+          <input type="text" id="disease_pest" placeholder="e.g. scab, mildew, none" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Phenological stage</label>
+          <select id="phenology" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="dormancy">Dormancy</option>
+            <option value="budbreak">Budbreak</option>
+            <option value="flowering">Flowering</option>
+            <option value="fruit_set">Fruit set</option>
+            <option value="fruit_dev">Fruit development</option>
+            <option value="ripening">Ripening / harvest</option>
+            <option value="post_harvest">Post-harvest</option>
+          </select>
+        </div>
+      </div>
+      <div class="field mt">
+        <label>Other observations</label>
+        <textarea id="observations" placeholder="General notes, anomalies, previous terracing, additional observations..." oninput="updateProgress()"></textarea>
+      </div>
+    </div>
+
+  </div><!-- /tab-soil -->
+
+  <!-- ===== METEO TAB ===== -->
+  <div id="tab-meteo" style="display:none">
+
+    <!-- COPERNICUS API CONFIG -->
+    <div class="card" style="border-color:#b0d9be; background:#F2F9F5;">
+      <div class="card-title"><span class="card-title-dot"></span>Copernicus Data Space — API connection
+        <span id="cop-api-status" style="margin-left:auto; font-size:10px; font-family:'IBM Plex Mono',monospace; color:#6B6860">Not configured</span>
+      </div>
+      <div class="grid-3">
+        <div class="field" style="grid-column:span 2">
+          <label>Sentinel Hub Client ID <span style="font-size:10px; color:#9E9B95">(free registration: dataspace.copernicus.eu)</span></label>
+          <input type="text" id="cop_client_id" placeholder="e.g. sh-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" oninput="updateCopernicusStatus()">
+        </div>
+        <div class="field">
+          <label>Client Secret</label>
+          <input type="password" id="cop_client_secret" placeholder="your secret" oninput="updateCopernicusStatus()">
+        </div>
+      </div>
+      <div style="margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <button class="btn btn-accent" onclick="testCopernicusAPI()">Test connection</button>
+        <button class="btn btn-outline" onclick="fetchCopernicus()">Fetch indices for current GPS</button>
+        <span style="font-size:11px; color:#6B6860">Without API key: NDVI/indices fields must be entered manually. ERA5 climate data below is always available.</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot"></span>Observation period &amp; station</div>
+      <div class="grid-4">
+        <div class="field">
+          <label>Station ID / name</label>
+          <input type="text" id="meteo_station" placeholder="e.g. Fuské Kruje 01" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Observation date</label>
+          <input type="date" id="meteo_date" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Observation time</label>
+          <input type="text" id="meteo_time" placeholder="e.g. 09:00" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Data source</label>
+          <select id="meteo_source" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="fuske_kruje">Fuské Kruje DB (in-situ)</option>
+            <option value="copernicus">Copernicus (Sentinel)</option>
+            <option value="manual">Manual field observation</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot"></span>Temperature <span class="unit-badge">°C</span></div>
+      <div class="grid-4">
+        <div class="field">
+          <label>Air temp — minimum</label>
+          <input type="number" id="temp_min" step="0.1" placeholder="e.g. 8.4" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Air temp — maximum</label>
+          <input type="number" id="temp_max" step="0.1" placeholder="e.g. 24.6" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Air temp — mean</label>
+          <input type="number" id="temp_mean" step="0.1" placeholder="e.g. 16.5" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Land surface temp (LST)</label>
+          <input type="number" id="lst" step="0.1" placeholder="Remote sensing" oninput="updateProgress()">
+          <span class="hint">From Copernicus / Sentinel-3</span>
+        </div>
+      </div>
+      <div class="grid-4 mt">
+        <div class="field">
+          <label>Soil temp at 10 cm</label>
+          <input type="number" id="soil_temp_10" step="0.1" placeholder="°C" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Soil temp at 30 cm</label>
+          <input type="number" id="soil_temp_30" step="0.1" placeholder="°C" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Growing degree days (GDD) <span class="unit-badge">°C·day</span></label>
+          <input type="number" id="gdd" step="0.1" placeholder="Accumulated" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Chilling hours (cumulative)</label>
+          <input type="number" id="chill_hours" step="1" placeholder="Hours &lt;7.2°C" oninput="updateProgress()">
+          <span class="hint">Relevant for Korçë apple</span>
+        </div>
+      </div>
+      <div class="grid-3 mt">
+        <div class="field">
+          <label>Frost risk (days forecast)</label>
+          <input type="number" id="frost_days" step="1" min="0" placeholder="0" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Heat stress days (Tmax &gt;35°C)</label>
+          <input type="number" id="heat_stress_days" step="1" min="0" placeholder="0" oninput="updateProgress()">
+          <span class="hint">Relevant for Lushnje tomato</span>
+        </div>
+        <div class="field">
+          <label>Temp anomaly vs. baseline</label>
+          <input type="number" id="temp_anomaly" step="0.1" placeholder="±°C" oninput="updateProgress()">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot"></span>Precipitation &amp; humidity</div>
+      <div class="grid-4">
+        <div class="field">
+          <label>Daily rainfall <span class="unit-badge">mm</span></label>
+          <input type="number" id="rainfall_daily" step="0.1" min="0" placeholder="e.g. 12.5" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Monthly rainfall <span class="unit-badge">mm</span></label>
+          <input type="number" id="rainfall_monthly" step="0.1" min="0" placeholder="e.g. 68" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Cumulative seasonal <span class="unit-badge">mm</span></label>
+          <input type="number" id="rainfall_seasonal" step="1" min="0" placeholder="e.g. 320" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Rainfall anomaly vs. baseline</label>
+          <input type="number" id="rainfall_anomaly" step="1" placeholder="±mm" oninput="updateProgress()">
+        </div>
+      </div>
+      <div class="grid-4 mt">
+        <div class="field">
+          <label>Relative humidity — min <span class="unit-badge">%</span></label>
+          <input type="number" id="rh_min" step="1" min="0" max="100" placeholder="%" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Relative humidity — max <span class="unit-badge">%</span></label>
+          <input type="number" id="rh_max" step="1" min="0" max="100" placeholder="%" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Relative humidity — mean <span class="unit-badge">%</span></label>
+          <input type="number" id="rh_mean" step="1" min="0" max="100" placeholder="%" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Dew point <span class="unit-badge">°C</span></label>
+          <input type="number" id="dew_point" step="0.1" placeholder="°C" oninput="updateProgress()">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot"></span>Evapotranspiration &amp; water balance</div>
+      <div class="grid-4">
+        <div class="field">
+          <label>ETo (reference ET) <span class="unit-badge">mm/day</span></label>
+          <input type="number" id="eto" step="0.01" min="0" placeholder="e.g. 4.2" oninput="updateProgress()">
+          <span class="hint">Penman-Monteith</span>
+        </div>
+        <div class="field">
+          <label>ETc (crop ET) <span class="unit-badge">mm/day</span></label>
+          <input type="number" id="etc" step="0.01" min="0" placeholder="e.g. 3.8" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Water deficit <span class="unit-badge">mm</span></label>
+          <input type="number" id="water_deficit" step="0.1" placeholder="ETc – rainfall" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Soil water balance <span class="unit-badge">mm</span></label>
+          <input type="number" id="soil_water_balance" step="0.1" placeholder="e.g. 45" oninput="updateProgress()">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot"></span>Soil moisture &amp; vegetation indices
+        <span style="margin-left:auto; display:flex; align-items:center; gap:8px;">
+          <button class="btn btn-outline" style="font-size:10px; padding:3px 10px;" onclick="fetchCopernicus()">⬇ Fetch from Copernicus</button>
+          <div id="copernicus-status" style="font-size:10px; font-family:'IBM Plex Mono',monospace; color:#6B6860;"></div>
+        </span>
+      </div>
+      <div class="grid-4">
+        <div class="field">
+          <label>Soil moisture at 10 cm <span class="unit-badge">%vol</span></label>
+          <input type="number" id="sm_10" step="0.1" min="0" max="100" placeholder="%" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Soil moisture at 30 cm <span class="unit-badge">%vol</span></label>
+          <input type="number" id="sm_30" step="0.1" min="0" max="100" placeholder="%" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Soil moisture at 60 cm <span class="unit-badge">%vol</span></label>
+          <input type="number" id="sm_60" step="0.1" min="0" max="100" placeholder="%" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Soil moisture index (remote) <span class="unit-badge">—</span></label>
+          <input type="number" id="sm_index" step="0.001" min="-1" max="1" placeholder="Copernicus SWI" oninput="updateProgress()">
+          <span class="hint">Sentinel-1 derived</span>
+        </div>
+      </div>
+      <div class="grid-4 mt">
+        <div class="field">
+          <label>NDVI <span class="unit-badge">—</span></label>
+          <input type="number" id="ndvi" step="0.001" min="-1" max="1" placeholder="-1 to 1" oninput="updateProgress()">
+          <span class="hint">Sentinel-2, 10m res.</span>
+        </div>
+        <div class="field">
+          <label>EVI <span class="unit-badge">—</span></label>
+          <input type="number" id="evi" step="0.001" min="-1" max="1" placeholder="-1 to 1" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>NDWI <span class="unit-badge">—</span></label>
+          <input type="number" id="ndwi" step="0.001" min="-1" max="1" placeholder="-1 to 1" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Water stress index</label>
+          <select id="water_stress_class" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="none">None</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="severe">Severe</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot"></span>Wind &amp; solar radiation</div>
+      <div class="grid-4">
+        <div class="field">
+          <label>Wind speed mean <span class="unit-badge">m/s</span></label>
+          <input type="number" id="wind_speed" step="0.1" min="0" placeholder="e.g. 2.4" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Wind direction</label>
+          <select id="wind_dir" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option>N</option><option>NE</option><option>E</option><option>SE</option>
+            <option>S</option><option>SW</option><option>W</option><option>NW</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Solar radiation <span class="unit-badge">MJ/m²/day</span></label>
+          <input type="number" id="solar_rad" step="0.1" min="0" placeholder="e.g. 18.5" oninput="updateProgress()">
+        </div>
+        <div class="field">
+          <label>Sunshine hours</label>
+          <input type="number" id="sunshine_hrs" step="0.1" min="0" max="24" placeholder="e.g. 9.5" oninput="updateProgress()">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot"></span>Crop-specific risk indicators</div>
+      <div class="grid-3">
+        <div class="field">
+          <label>Disease risk level</label>
+          <select id="disease_risk" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+          <span class="hint">Scab (apple) / mildew (tomato) / etc.</span>
+        </div>
+        <div class="field">
+          <label>Drought stress level (olive)</label>
+          <select id="drought_stress" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="none">None</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Alternate bearing status (olive)</label>
+          <select id="alternate_bearing" onchange="updateProgress()">
+            <option value="">Select...</option>
+            <option value="on">On year (high yield)</option>
+            <option value="off">Off year (low yield)</option>
+            <option value="unknown">Unknown / NA</option>
+          </select>
+        </div>
+      </div>
+      <div class="field mt">
+        <label>Meteo notes &amp; anomalies</label>
+        <textarea id="meteo_notes" placeholder="Record any unusual weather events, data quality issues, satellite acquisition gaps, etc." oninput="updateProgress()"></textarea>
+      </div>
+    </div>
+
+  </div><!-- /tab-meteo -->
+
+  <!-- ===== RECORDS TAB ===== -->
+  <div id="tab-records" style="display:none">
+
+    <div class="export-panel">
+      <div class="card-title" style="border:none; padding:0; margin-bottom:8px;"><span class="card-title-dot"></span>Records</div>
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:10px">Local records (this browser) + Supabase database records when connected.</p>
+      <div class="export-btn-row">
+        <button class="btn btn-accent" onclick="loadFromSupabase()">↓ Load from database</button>
+        <button class="btn btn-accent" onclick="exportJSON()">Download JSON</button>
+        <button class="btn btn-outline" onclick="exportCSV()">Download CSV</button>
+        <button class="btn btn-outline" onclick="exportHTML()">Download printable form</button>
+        <button class="btn btn-danger" onclick="clearAllRecords()">Clear all records</button>
+      </div>
+    </div>
+
+    <div id="records-list">
+      <p style="color:var(--text-muted); font-size:13px; text-align:center; padding:32px 0;">No records saved yet. Fill in the survey form and click "Save record".</p>
+    </div>
+
+  </div><!-- /tab-records -->
+
+  <!-- ===== GIS MAP TAB ===== -->
+  <div id="tab-map">
+    <div class="map-tab-wrap">
+      <div class="map-layers">
+        <strong style="font-size:11px;color:#6B6860;margin-right:4px">QTTB layers:</strong>
+        <div class="layer-toggle on" id="tog-landuse" onclick="toggleMapLayer('landuse',this)"><div class="layer-dot" style="background:#2B5F3F"></div>Land use 2020</div>
+        <div class="layer-toggle" id="tog-pedology" onclick="toggleMapLayer('pedology',this)"><div class="layer-dot" style="background:#9B6A3A"></div>Pedologjia</div>
+        <div class="layer-toggle" id="tog-suitability" onclick="toggleMapLayer('suitability',this)"><div class="layer-dot" style="background:#4A7AB0"></div>Suitability</div>
+        <div class="layer-toggle" id="tog-olive" onclick="toggleMapLayer('olive',this)"><div class="layer-dot" style="background:#7A9A40"></div>Olive cadastre</div>
+        <div class="layer-toggle" id="tog-parcels" onclick="toggleMapLayer('parcels',this)"><div class="layer-dot" style="background:#C47A1A"></div>Cadastral parcels</div>
+        <div class="layer-toggle" id="tog-ortho" onclick="toggleMapLayer('ortho',this)"><div class="layer-dot" style="background:#7a9b60"></div>Orthophoto 2018</div>
+      </div>
+      <div id="qttb-map"></div>
+      <div class="map-info">
+        <span id="map-coords">Cursor: move over map</span>
+        <span id="map-zoom">Zoom: —</span>
+        <span style="color:#2B5F3F;font-weight:500">ASIG · QTTB Fushë Krujë · geoportal.asig.gov.al/service/qttb/ows</span>
+        <span id="map-click-info" style="color:#B8720A"></span>
+      </div>
+    </div>
+  </div><!-- /tab-map -->
+
+</div><!-- /container -->
+
+<div class="bottom-bar">
+  <div class="bottom-left">
+    <span class="record-count" id="record-count">0 records saved</span>
+  </div>
+  <div class="bottom-right">
+    <button class="btn btn-outline" onclick="clearForm()">Clear form</button>
+    <button class="btn btn-accent" onclick="saveRecord()">Save record</button>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'qttb_survey_records';
+
+const textureOptions = [
+  '',
+  'S — Sandy','LS — Loamy sand','LfS — Loamy fine sand','SL — Sandy loam',
+  'fSL — Fine sandy loam','SCL — Sandy clay loam','L — Loam','ZL — Silt loam',
+  'CL — Clay loam','ZCL — Silty clay loam','C — Clay','ZC — Silty clay',
+  'SC — Sandy clay','P — Peat','PY — Peaty','Z — Silt'
+];
+const tawGroups = ['','1 — S, LS','2 — SL, L, SCL, CL','3 — fSL, LfS, Z, ZL, ZCL','4 — C, SC, ZC','5 — Peat'];
+const motO = ['','0 — None','F — Few (<5)','C — Common (5-15)','M — Many (>15)'];
+const motD = ['','F — Faint','D — Distinct'];
+const motRG = ['','G — Fine','S — Medium','B — Large','R — Rounded','A — Angular','F — Flat'];
+const consist = ['','VF — Very friable/loose','FR — Friable','FI — Firm','VF2 — Very/extr. firm','S — Soft (peat)'];
+const stoneCls = ['','G — Small gravel','S — Medium stones','B — Large boulders'];
+
+function buildHorizons() {
+  const tbody = document.getElementById('horizon-body');
+  tbody.innerHTML = '';
+  const labels = ['1 Topsoil','2','3','4','5'];
+  labels.forEach((lbl, i) => {
+    const tr = document.createElement('tr');
+    const makeSelect = (opts, id, w) => `<select id="${id}" style="width:${w}px">${opts.map(o=>`<option value="${o.split(' — ')[0] || ''}">${o}</option>`).join('')}</select>`;
+    tr.innerHTML = `
+      <td>${lbl}</td>
+      <td><input type="text" id="h${i}_horizon" style="width:44px" placeholder="Ap"></td>
+      <td><input type="text" id="h${i}_depth" style="width:56px" placeholder="${i===0?'0–':''}"></td>
+      <td><input type="number" id="h${i}_thick" style="width:44px" step="1"></td>
+      <td><input type="text" id="h${i}_colour" style="width:72px" placeholder="10YR 4/3"></td>
+      <td>${makeSelect(motO,'h'+i+'_mot_o',60)}</td>
+      <td>${makeSelect(motD,'h'+i+'_mot_d',38)}</td>
+      <td>${makeSelect(motRG,'h'+i+'_mot_rg',38)}</td>
+      <td><select id="h${i}_texture" style="width:94px">${textureOptions.map(o=>`<option>${o}</option>`).join('')}</select></td>
+      <td>${makeSelect(tawGroups,'h'+i+'_taw_grp',82)}</td>
+      <td><input type="number" id="h${i}_taw_mm" style="width:52px" step="0.1"></td>
+      <td>${makeSelect(consist,'h'+i+'_consist',76)}</td>
+      <td><input type="number" id="h${i}_ataw" style="width:40px" step="0.1" value="${i===0?'1.0':''}"></td>
+      <td><input type="number" id="h${i}_stones" style="width:40px" min="0" max="100"></td>
+      <td>${makeSelect(stoneCls,'h'+i+'_stone_cls',40)}</td>
+      <td><input type="number" id="h${i}_stone_free" style="width:44px" min="0" max="100"></td>
+      <td><input type="number" id="h${i}_taw_cols" style="width:44px" step="0.1"></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function switchTab(name, el) {
+  ['soil','meteo','records','map'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===name?'':'none';
+  });
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  if(name==='records') renderRecords();
+  if(name==='map') initMap();
+}
+
+function getVal(id) {
+  const el = document.getElementById(id);
+  return el ? el.value.trim() : '';
+}
+
+function collectSoilData() {
+  const horizons = [];
+  for(let i=0;i<5;i++) {
+    horizons.push({
+      label: ['Topsoil','H2','H3','H4','H5'][i],
+      horizon: getVal(`h${i}_horizon`),
+      depth: getVal(`h${i}_depth`),
+      thickness: getVal(`h${i}_thick`),
+      colour: getVal(`h${i}_colour`),
+      mottles_O: getVal(`h${i}_mot_o`),
+      mottles_D: getVal(`h${i}_mot_d`),
+      mottles_RG: getVal(`h${i}_mot_rg`),
+      texture_class: getVal(`h${i}_texture`),
+      taw_group: getVal(`h${i}_taw_grp`),
+      taw_mm_cm: getVal(`h${i}_taw_mm`),
+      consistency: getVal(`h${i}_consist`),
+      aTAW: getVal(`h${i}_ataw`),
+      stones_pct: getVal(`h${i}_stones`),
+      stone_class: getVal(`h${i}_stone_cls`),
+      stone_free_pct: getVal(`h${i}_stone_free`),
+      taw_mm_cols: getVal(`h${i}_taw_cols`),
+    });
+  }
+  return {
+    commune: getVal('commune'), survey_date: getVal('survey_date'),
+    surveyor: getVal('surveyor'), ref_no: getVal('ref_no'),
+    gps_e: getVal('gps_e'), gps_n: getVal('gps_n'),
+    slope_pct: getVal('slope_pct'), slope_class: getVal('slope_class'),
+    qttb_area: getVal('qttb_area'), landform: getVal('landform'),
+    landform_class: getVal('landform_class'),
+    water_table: getVal('water_table'), irrigation_system: getVal('irrigation_system'),
+    irrigation_type: getVal('irrigation_type'), drainage_class: getVal('drainage_class'),
+    drainage_channels: getVal('drainage_channels'), underdrains: getVal('underdrains'),
+    brazda: getVal('brazda'), flood_risk: getVal('flood_risk'),
+    land_cover: getVal('land_cover'), land_cover_class: getVal('land_cover_class'),
+    erosion_desc: getVal('erosion_desc'), erosion_class: getVal('erosion_class'),
+    erosion_risk: getVal('erosion_risk'), erodibility: getVal('erodibility'),
+    horizons,
+    topsoil_h: getVal('topsoil_h'), subsoil_j: getVal('subsoil_j'),
+    depth_class: getVal('depth_class'), taw_class: getVal('taw_class'),
+    taw_100: getVal('taw_100'), soil_type: getVal('soil_type'),
+    flooding_info: getVal('flooding_info'),
+    plant_health: getVal('plant_health'), disease_pest: getVal('disease_pest'),
+    phenology: getVal('phenology'), observations: getVal('observations'),
+  };
+}
+
+function collectMeteoData() {
+  return {
+    meteo_station: getVal('meteo_station'), meteo_date: getVal('meteo_date'),
+    meteo_time: getVal('meteo_time'), meteo_source: getVal('meteo_source'),
+    temp_min: getVal('temp_min'), temp_max: getVal('temp_max'),
+    temp_mean: getVal('temp_mean'), lst: getVal('lst'),
+    soil_temp_10: getVal('soil_temp_10'), soil_temp_30: getVal('soil_temp_30'),
+    gdd: getVal('gdd'), chill_hours: getVal('chill_hours'),
+    frost_days: getVal('frost_days'), heat_stress_days: getVal('heat_stress_days'),
+    temp_anomaly: getVal('temp_anomaly'),
+    rainfall_daily: getVal('rainfall_daily'), rainfall_monthly: getVal('rainfall_monthly'),
+    rainfall_seasonal: getVal('rainfall_seasonal'), rainfall_anomaly: getVal('rainfall_anomaly'),
+    rh_min: getVal('rh_min'), rh_max: getVal('rh_max'),
+    rh_mean: getVal('rh_mean'), dew_point: getVal('dew_point'),
+    eto: getVal('eto'), etc: getVal('etc'),
+    water_deficit: getVal('water_deficit'), soil_water_balance: getVal('soil_water_balance'),
+    sm_10: getVal('sm_10'), sm_30: getVal('sm_30'),
+    sm_60: getVal('sm_60'), sm_index: getVal('sm_index'),
+    ndvi: getVal('ndvi'), evi: getVal('evi'),
+    ndwi: getVal('ndwi'), water_stress_class: getVal('water_stress_class'),
+    wind_speed: getVal('wind_speed'), wind_dir: getVal('wind_dir'),
+    solar_rad: getVal('solar_rad'), sunshine_hrs: getVal('sunshine_hrs'),
+    disease_risk: getVal('disease_risk'), drought_stress: getVal('drought_stress'),
+    alternate_bearing: getVal('alternate_bearing'), meteo_notes: getVal('meteo_notes'),
+  };
+}
+
+function loadRecords() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { return []; }
+}
+function saveRecords(records) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+}
+
+function saveRecord() {
+  const soil = collectSoilData();
+  if(!soil.commune || !soil.surveyor || !soil.qttb_area) {
+    showStatus('error', 'Please fill in Commune, Surveyor, and QTTB Area before saving.');
+    return;
+  }
+  const meteo = collectMeteoData();
+  const record = {
+    id: Date.now(),
+    saved_at: new Date().toISOString(),
+    soil,
+    meteo,
+  };
+  // 1. Always save to localStorage (works offline)
+  const records = loadRecords();
+  records.push(record);
+  saveRecords(records);
+  updateRecordCount();
+
+  // 2. Also save to Supabase if configured
+  const cfg = getDbConfig();
+  if(cfg) {
+    showStatus('success', `Saving to database…`);
+    saveToSupabase(soil, meteo).then(dbId => {
+      if(dbId) showStatus('success', `✓ Saved locally + database (DB id: ${dbId}) — ${soil.commune}, Ref: ${soil.ref_no || 'n/a'}`);
+      else showStatus('success', `Saved locally — ${soil.commune} (database error, check config)`);
+    }).catch(e => {
+      showStatus('warn', `Saved locally. Database error: ${e.message}`);
+    });
+  } else {
+    showStatus('success', `Saved locally: ${soil.commune} — ${soil.qttb_area} (Ref: ${soil.ref_no || 'n/a'}). Configure ⚙ Database to also save to Supabase.`);
+  }
+}
+
+function deleteRecord(id) {
+  const records = loadRecords().filter(r => r.id !== id);
+  saveRecords(records);
+  renderRecords();
+  updateRecordCount();
+}
+
+function renderRecords() {
+  const records = loadRecords();
+  const container = document.getElementById('records-list');
+  if(!records.length) {
+    container.innerHTML = '<p style="color:var(--text-muted); font-size:13px; text-align:center; padding:32px 0;">No records saved yet.</p>';
+    return;
+  }
+  container.innerHTML = records.map(r => {
+    const s = r.soil;
+    const d = new Date(r.saved_at).toLocaleString();
+    const areaLabel = {korce_apple:'Korçë – Apple', lushnje_tomato:'Lushnje – Tomato', vlore_olive:'Vlorë – Olive'}[s.qttb_area] || s.qttb_area;
+    return `<div class="record-item">
+      <div>
+        <div style="font-weight:500;">${s.commune || '—'} &nbsp;·&nbsp; ${areaLabel} &nbsp;·&nbsp; ${s.surveyor || '—'}</div>
+        <div class="record-meta">Ref: ${s.ref_no || 'n/a'} &nbsp;|&nbsp; Date: ${s.survey_date || 'n/a'} &nbsp;|&nbsp; Saved: ${d}</div>
+      </div>
+      <div class="record-actions">
+        <button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="exportSingle(${r.id})">Export</button>
+        <button class="btn btn-danger" style="font-size:11px; padding:4px 10px;" onclick="deleteRecord(${r.id})">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateRecordCount() {
+  const n = loadRecords().length;
+  document.getElementById('record-count').textContent = `${n} record${n===1?'':'s'} saved`;
+}
+
+function showStatus(type, msg) {
+  const el = document.getElementById('status-banner');
+  el.className = 'status-banner ' + type;
+  el.textContent = msg;
+  setTimeout(() => el.className = 'status-banner', 4000);
+}
+
+function exportJSON() {
+  const records = loadRecords();
+  if(!records.length) { showStatus('error','No records to export.'); return; }
+  download('qttb_survey_data.json', JSON.stringify(records, null, 2), 'application/json');
+}
+
+function exportSingle(id) {
+  const record = loadRecords().find(r => r.id === id);
+  if(!record) return;
+  const name = `qttb_${record.soil.ref_no || record.id}.json`;
+  download(name, JSON.stringify(record, null, 2), 'application/json');
+}
+
+function exportCSV() {
+  const records = loadRecords();
+  if(!records.length) { showStatus('error','No records to export.'); return; }
+  const flat = records.map(r => ({
+    id: r.id, saved_at: r.saved_at,
+    ...flattenObj(r.soil, 'soil'),
+    ...flattenObj(r.meteo, 'meteo'),
+  }));
+  const keys = Object.keys(flat[0]);
+  const csv = [keys.join(','), ...flat.map(row => keys.map(k => JSON.stringify(row[k]??'')).join(','))].join('\n');
+  download('qttb_survey_data.csv', csv, 'text/csv');
+}
+
+function flattenObj(obj, prefix) {
+  const out = {};
+  for(const [k,v] of Object.entries(obj)) {
+    if(Array.isArray(v)) {
+      v.forEach((item,i) => { for(const [ik,iv] of Object.entries(item)) out[`${prefix}_h${i+1}_${ik}`]=iv; });
+    } else {
+      out[`${prefix}_${k}`] = v;
+    }
+  }
+  return out;
+}
+
+function exportHTML() {
+  const records = loadRecords();
+  if(!records.length) { showStatus('error','No records to export.'); return; }
+  let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>QTTB Survey Records</title>
+  <style>body{font-family:sans-serif;font-size:13px;max-width:900px;margin:32px auto;color:#1a1916}
+  h1{font-size:18px;margin-bottom:4px}h2{font-size:14px;margin:20px 0 8px;border-bottom:1px solid #ddd;padding-bottom:4px}
+  table{width:100%;border-collapse:collapse;margin-bottom:16px}td,th{padding:5px 8px;border:1px solid #e0ddd8;font-size:12px}
+  th{background:#f5f3ee;font-weight:500;text-align:left}.record{border:1px solid #d8d4cc;border-radius:8px;padding:16px 20px;margin-bottom:24px}
+  .meta{font-size:11px;color:#888;margin-bottom:12px}.badge{display:inline-block;background:#e8f2ec;color:#1d4029;padding:2px 8px;border-radius:4px;font-size:11px}
+  </style></head><body>
+  <h1>QTTB Field Survey Records</h1><p style="color:#888;font-size:12px">Exported: ${new Date().toLocaleString()} — ${records.length} record(s)</p>`;
+  records.forEach((r,ri) => {
+    const s = r.soil; const m = r.meteo;
+    const areaLabel = {korce_apple:'Korçë – Apple', lushnje_tomato:'Lushnje – Tomato', vlore_olive:'Vlorë – Olive'}[s.qttb_area] || s.qttb_area;
+    html += `<div class="record">
+    <h2>Record ${ri+1}: ${s.commune||'—'} &nbsp;<span class="badge">${areaLabel}</span></h2>
+    <div class="meta">Ref: ${s.ref_no||'—'} | Surveyor: ${s.surveyor||'—'} | Date: ${s.survey_date||'—'} | Saved: ${new Date(r.saved_at).toLocaleString()}</div>
+    <h2>Site &amp; soil data</h2>
+    <table><tr><th>Field</th><th>Value</th><th>Field</th><th>Value</th></tr>
+    ${pairRows([['GPS E',s.gps_e],['GPS N',s.gps_n],['Slope %',s.slope_pct],['Slope class T',s.slope_class],
+    ['Landform',s.landform],['Landform class',s.landform_class],
+    ['Water-table',s.water_table],['Irrigation system',s.irrigation_system],['Irrigation type',s.irrigation_type],['Drainage class',s.drainage_class],
+    ['Drainage channels',s.drainage_channels],['Underdrains',s.underdrains],['Brazda',s.brazda],['Flood risk F',s.flood_risk],
+    ['Land cover',s.land_cover],['Land cover class',s.land_cover_class],['Erosion class E',s.erosion_class],['Erosion risk R',s.erosion_risk],
+    ['Erodibility k',s.erodibility],['Topsoil h',s.topsoil_h],['Subsoil j',s.subsoil_j],['Depth class d',s.depth_class],
+    ['TAW 100cm',s.taw_100],['TAW class q',s.taw_class],['Soil type',s.soil_type],['Flooding info',s.flooding_info],
+    ['Plant health',s.plant_health],['Disease/pest',s.disease_pest],['Phenology',s.phenology]])}
+    </table>
+    <h2>Horizon table</h2><table><tr><th>#</th><th>Horizon</th><th>Depth</th><th>Thick</th><th>Colour</th><th>Texture</th><th>TAW mm/cm</th><th>aTAW</th><th>Stones%</th></tr>
+    ${s.horizons.filter(h=>h.horizon||h.depth).map(h=>`<tr><td>${h.label}</td><td>${h.horizon}</td><td>${h.depth}</td><td>${h.thickness}</td><td>${h.colour}</td><td>${h.texture_class}</td><td>${h.taw_mm_cm}</td><td>${h.aTAW}</td><td>${h.stones_pct}</td></tr>`).join('')}
+    </table>
+    ${s.observations?`<p><strong>Observations:</strong> ${s.observations}</p>`:''}
+    <h2>Meteo data</h2>
+    <table><tr><th>Field</th><th>Value</th><th>Field</th><th>Value</th></tr>
+    ${pairRows([['Station',m.meteo_station],['Date',m.meteo_date],['Source',m.meteo_source],['Time',m.meteo_time],
+    ['Temp min°C',m.temp_min],['Temp max°C',m.temp_max],['Temp mean°C',m.temp_mean],['LST°C',m.lst],
+    ['Soil T 10cm',m.soil_temp_10],['Soil T 30cm',m.soil_temp_30],['GDD',m.gdd],['Chill hrs',m.chill_hours],
+    ['Frost days',m.frost_days],['Heat stress days',m.heat_stress_days],['Temp anomaly',m.temp_anomaly],
+    ['Rainfall daily mm',m.rainfall_daily],['Rainfall monthly mm',m.rainfall_monthly],['Rainfall seasonal',m.rainfall_seasonal],['RF anomaly',m.rainfall_anomaly],
+    ['RH min%',m.rh_min],['RH max%',m.rh_max],['RH mean%',m.rh_mean],['Dew point°C',m.dew_point],
+    ['ETo mm/d',m.eto],['ETc mm/d',m.etc],['Water deficit mm',m.water_deficit],['Soil water balance',m.soil_water_balance],
+    ['SM 10cm%',m.sm_10],['SM 30cm%',m.sm_30],['SM 60cm%',m.sm_60],['SM index',m.sm_index],
+    ['NDVI',m.ndvi],['EVI',m.evi],['NDWI',m.ndwi],['Water stress',m.water_stress_class],
+    ['Wind m/s',m.wind_speed],['Wind dir',m.wind_dir],['Solar MJ/m²',m.solar_rad],['Sunshine hrs',m.sunshine_hrs],
+    ['Disease risk',m.disease_risk],['Drought stress',m.drought_stress],['Alt. bearing',m.alternate_bearing]])}
+    </table>
+    ${m.meteo_notes?`<p><strong>Meteo notes:</strong> ${m.meteo_notes}</p>`:''}
+    </div>`;
+  });
+  html += '</body></html>';
+  download('qttb_survey_report.html', html, 'text/html');
+}
+
+function pairRows(pairs) {
+  let out = ''; 
+  for(let i=0;i<pairs.length;i+=2) {
+    const a=pairs[i]; const b=pairs[i+1]||['',''];
+    out+=`<tr><td style="color:#666">${a[0]}</td><td>${a[1]||'—'}</td><td style="color:#666">${b[0]}</td><td>${b[1]||'—'}</td></tr>`;
+  }
+  return out;
+}
+
+function download(filename, content, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], {type}));
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function clearAllRecords() {
+  if(!confirm('Delete all saved records? This cannot be undone.')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  renderRecords();
+  updateRecordCount();
+}
+
+function clearForm() {
+  document.querySelectorAll('input, select, textarea').forEach(el => {
+    if(el.type==='date') el.value='';
+    else if(el.tagName==='SELECT') el.selectedIndex=0;
+    else el.value='';
+  });
+  buildHorizons();
+  updateProgress();
+}
+
+function updateProgress() {
+  const soilIds = ['commune','survey_date','surveyor','ref_no','gps_e','gps_n','qttb_area',
+    'slope_class','landform','water_table','irrigation_system','drainage_class','flood_risk',
+    'land_cover','erosion_class','erosion_risk','topsoil_h','depth_class','taw_class',
+    'plant_health','phenology'];
+  const filled = soilIds.filter(id => { const el=document.getElementById(id); return el&&el.value; }).length;
+  const pct = Math.round((filled/soilIds.length)*100);
+  document.getElementById('progress-fill').style.width = pct+'%';
+  document.getElementById('progress-pct').textContent = pct+'%';
+}
+
+// ─── LOAD REAL REF.133 SURVEY DATA ─────────────────────────────────────────
+function loadRef133() {
+  document.getElementById('commune').value = 'Prezë';
+  document.getElementById('survey_date').value = '2003-03-15';
+  document.getElementById('surveyor').value = 'Gr. Sulçkrani';
+  document.getElementById('ref_no').value = '133';
+  document.getElementById('gps_e').value = '19.716157';
+  document.getElementById('gps_n').value = '41.492314';
+  document.getElementById('slope_pct').value = '1';
+  document.getElementById('slope_class').value = '1';
+  document.getElementById('qttb_area').value = 'korce_apple';
+  document.getElementById('landform').value = '1';
+  document.getElementById('landform_class').value = 'Broad plain, flat';
+  document.getElementById('water_table').value = 'N';
+  document.getElementById('irrigation_system').value = '1';
+  document.getElementById('irrigation_type').value = 'F';
+  document.getElementById('drainage_class').value = '2';
+  document.getElementById('drainage_channels').value = '1';
+  document.getElementById('underdrains').value = '0';
+  document.getElementById('brazda').value = 'N';
+  document.getElementById('flood_risk').value = '1';
+  document.getElementById('land_cover').value = '5';
+  document.getElementById('land_cover_class').value = '2';
+  document.getElementById('erosion_desc').value = 'None';
+  document.getElementById('erosion_class').value = '0';
+  document.getElementById('erosion_risk').value = '1';
+  document.getElementById('erodibility').value = '2';
+  document.getElementById('topsoil_h').value = '2';
+  document.getElementById('subsoil_j').value = '2';
+  document.getElementById('depth_class').value = '1';
+  document.getElementById('taw_class').value = '1';
+  document.getElementById('taw_100').value = '166';
+  document.getElementById('soil_type').value = 'Fluvisol — alluvium parent material';
+  document.getElementById('flooding_info').value = 'None';
+  document.getElementById('plant_health').value = '1';
+  document.getElementById('disease_pest').value = 'None observed';
+  document.getElementById('phenology').value = 'dormancy';
+  document.getElementById('observations').value = 'Ref.133 — Soil Research Institute Tirana. GPS: E 0391121 N 4587725 (UTM). Colour class code: 30-00, 60-00. Texture class code: 10-20-20. TAW(100cm)=166mm. Depth class 1 (>120cm). Erodibility class 2. TAW class 1 (High >170mm). Drainage: Imperfect. Irrigation/drainage system: 3.5. Survey: LUPP2 / Land Use Policy Project AL 98-05-02, Albania.';
+
+  // Horizon data from photographed form (foto_FK.docx)
+  const hdata = [
+    {h:'Ap', d:'0-30',   t:'30', c:'DR', tx:'CL', tg:'2', mm:'1.8', at:'1.0', tc:'100'},
+    {h:'B1', d:'30-50',  t:'20', c:'GB', tx:'CL', tg:'2', mm:'1.6', at:'1.0', tc:'100'},
+    {h:'B2', d:'50-90',  t:'40', c:'GB', tx:'SCL',tg:'4', mm:'1.6', at:'1.0', tc:'100'},
+    {h:'B3', d:'90-160', t:'10', c:'GB', tx:'L',  tg:'2', mm:'1.6', at:'1.0', tc:'100'},
+  ];
+  hdata.forEach((hz, i) => {
+    const s = (id, val) => { const el=document.getElementById(id); if(el) el.value=val; };
+    s(`h${i}_horizon`, hz.h);
+    s(`h${i}_depth`,   hz.d);
+    s(`h${i}_thick`,   hz.t);
+    s(`h${i}_colour`,  hz.c);
+    s(`h${i}_mot_o`,   i===0?'0':'F');
+    s(`h${i}_mot_d`,   i===0?'':'F');
+    s(`h${i}_taw_mm`,  hz.mm);
+    s(`h${i}_ataw`,    hz.at);
+    s(`h${i}_stones`,  '0');
+    s(`h${i}_stone_free`, '100');
+    s(`h${i}_taw_cols`,hz.tc);
+    // Set texture select
+    const txSel = document.getElementById(`h${i}_texture`);
+    if(txSel) { for(const o of txSel.options) { if(o.text.startsWith(hz.tx + ' ') || o.text === hz.tx) { txSel.value = o.value; break; } } }
+    // Set consistency
+    const coSel = document.getElementById(`h${i}_consist`);
+    if(coSel) { for(const o of coSel.options) { if(o.text.startsWith('FI')) { coSel.value = o.value; break; } } }
+  });
+  updateProgress();
+  showStatus('success', 'Loaded: Ref.133 — Prezë, Fushë Krujë, 15.03.2003 (Gr. Sulçkrani). All 4 horizons populated.');
+}
+
+// ─── IMPORT FROM JSON ────────────────────────────────────────────────────────
+function importJSON(input) {
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      let data = JSON.parse(e.target.result);
+      const records = Array.isArray(data) ? data : [data];
+      const existing = loadRecords();
+      let added = 0;
+      records.forEach(r => {
+        const record = r.soil ? r : { id: Date.now()+added, saved_at: new Date().toISOString(), soil: r, meteo: r.meteo||{} };
+        const refNo = record.soil?.ref_no;
+        const dupe = existing.find(ex => ex.soil?.ref_no && ex.soil.ref_no === refNo);
+        if(!dupe) { existing.push(record); added++; }
+      });
+      saveRecords(existing);
+      updateRecordCount();
+      if(records[0]) fillFormFromData(records[0].soil || records[0], records[0].meteo || {});
+      showStatus('success', `Imported ${added} record(s). Form filled with first record.`);
+    } catch(err) { showStatus('error', 'Import failed: ' + err.message); }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function fillFormFromData(s, m) {
+  ['commune','survey_date','surveyor','ref_no','gps_e','gps_n','slope_pct','slope_class',
+   'qttb_area','landform','landform_class','water_table','irrigation_system','irrigation_type',
+   'drainage_class','drainage_channels','underdrains','brazda','flood_risk',
+   'land_cover','land_cover_class','erosion_desc','erosion_class','erosion_risk','erodibility',
+   'topsoil_h','subsoil_j','depth_class','taw_class','taw_100','soil_type','flooding_info',
+   'plant_health','disease_pest','phenology','observations'
+  ].forEach(f => { const el=document.getElementById(f); if(el && s[f]!==undefined) el.value=s[f]; });
+
+  if(s.horizons) s.horizons.forEach((hz, i) => {
+    if(i>=5) return;
+    const set=(id,val)=>{ const el=document.getElementById(id); if(el&&val!==undefined) el.value=val; };
+    set(`h${i}_horizon`,hz.horizon); set(`h${i}_depth`,hz.depth); set(`h${i}_thick`,hz.thickness);
+    set(`h${i}_colour`,hz.colour); set(`h${i}_mot_o`,hz.mottles_O); set(`h${i}_mot_d`,hz.mottles_D);
+    set(`h${i}_mot_rg`,hz.mottles_RG); set(`h${i}_texture`,hz.texture_class);
+    set(`h${i}_taw_grp`,hz.taw_group); set(`h${i}_taw_mm`,hz.taw_mm_cm);
+    set(`h${i}_consist`,hz.consistency); set(`h${i}_ataw`,hz.aTAW);
+    set(`h${i}_stones`,hz.stones_pct); set(`h${i}_stone_cls`,hz.stone_class);
+    set(`h${i}_stone_free`,hz.stone_free_pct); set(`h${i}_taw_cols`,hz.taw_mm_cols);
+  });
+
+  ['meteo_station','meteo_date','meteo_time','meteo_source','temp_min','temp_max','temp_mean',
+   'lst','soil_temp_10','soil_temp_30','gdd','chill_hours','frost_days','heat_stress_days',
+   'temp_anomaly','rainfall_daily','rainfall_monthly','rainfall_seasonal','rainfall_anomaly',
+   'rh_min','rh_max','rh_mean','dew_point','eto','etc','water_deficit','soil_water_balance',
+   'sm_10','sm_30','sm_60','sm_index','ndvi','evi','ndwi','water_stress_class',
+   'wind_speed','wind_dir','solar_rad','sunshine_hrs','disease_risk','drought_stress',
+   'alternate_bearing','meteo_notes'
+  ].forEach(f => { const el=document.getElementById(f); if(el && m[f]!==undefined) el.value=m[f]; });
+  updateProgress();
+}
+
+// ─── GIS MAP (lazy-loaded on tab open) ───────────────────────────────────────
+let mapInstance = null;
+const QTTB_WMS = 'https://geoportal.asig.gov.al/service/qttb/ows';
+const ZRPP_WMS = 'https://geoportal.asig.gov.al/service/zrpp/ows';
+const ERR_TILE = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+const WMS_CFG  = { format:'image/png', transparent:true, version:'1.3.0', errorTileUrl:ERR_TILE };
+const mapLayers = {};
+
+function initMap() {
+  if(mapInstance) { setTimeout(()=>mapInstance.invalidateSize(),100); return; }
+  if(!window.L) {
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    s.onload = buildMap;
+    document.head.appendChild(s);
+  } else buildMap();
+}
+
+function buildMap() {
+  mapInstance = L.map('qttb-map', { center:[41.492,19.716], zoom:12 });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OpenStreetMap', maxZoom:19 }).addTo(mapInstance);
+  mapLayers.ortho       = L.tileLayer('https://geoportal.asig.gov.al/service/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=OrtoFoto2018&STYLE=default&TILEMATRIXSET=GoogleMapsCompatible&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/jpeg', { attribution:'© ASIG Orthophoto 2018', errorTileUrl:ERR_TILE });
+  mapLayers.landuse     = L.tileLayer.wms(QTTB_WMS, {...WMS_CFG, layers:'perdorimi_tokes_2020',    opacity:0.75, attribution:'© QTTB FK/ASIG'}).addTo(mapInstance);
+  mapLayers.pedology    = L.tileLayer.wms(QTTB_WMS, {...WMS_CFG, layers:'pedologjia_23042024',     opacity:0.70, attribution:'© QTTB FK/ASIG'});
+  mapLayers.suitability = L.tileLayer.wms(QTTB_WMS, {...WMS_CFG, layers:'Pershtatshmeria_07082019',opacity:0.70, attribution:'© QTTB FK/ASIG'});
+  mapLayers.olive       = L.tileLayer.wms(QTTB_WMS, {...WMS_CFG, layers:'kadastra_e_ullishteve',   opacity:0.80, attribution:'© QTTB FK/ASIG'});
+  mapLayers.parcels     = L.tileLayer.wms(ZRPP_WMS, {...WMS_CFG, layers:'parcela_kadastrale_qkd_042025', opacity:0.85, attribution:'© ASHK/ASIG'}).addTo(mapInstance);
+
+  mapInstance.on('mousemove', e => { document.getElementById('map-coords').textContent = `Cursor: ${e.latlng.lat.toFixed(5)}°N  ${e.latlng.lng.toFixed(5)}°E`; });
+  mapInstance.on('zoomend',   ()  => { document.getElementById('map-zoom').textContent = `Zoom: ${mapInstance.getZoom()}`; });
+
+  mapInstance.on('click', async e => {
+    const infoEl = document.getElementById('map-click-info');
+    // Always fill GPS from click
+    document.getElementById('gps_n').value = e.latlng.lat.toFixed(6);
+    document.getElementById('gps_e').value = e.latlng.lng.toFixed(6);
+    infoEl.textContent = `GPS filled: ${e.latlng.lat.toFixed(5)}°N ${e.latlng.lng.toFixed(5)}°E — querying ASIG…`;
+    try {
+      const b=mapInstance.getBounds(), sz=mapInstance.getSize();
+      const params = new URLSearchParams({ SERVICE:'WMS', VERSION:'1.3.0', REQUEST:'GetFeatureInfo',
+        LAYERS:'perdorimi_tokes_2020', QUERY_LAYERS:'perdorimi_tokes_2020',
+        CRS:'EPSG:4326', BBOX:`${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`,
+        WIDTH:sz.x, HEIGHT:sz.y, I:Math.round(e.containerPoint.x), J:Math.round(e.containerPoint.y),
+        INFO_FORMAT:'application/json', FEATURE_COUNT:'3' });
+      const resp = await fetch(`${QTTB_WMS}?${params}`, {mode:'cors'});
+      const data = await resp.json();
+      const feats = data.features || [];
+      if(feats.length) {
+        const props = feats[0].properties || {};
+        const summary = Object.entries(props).filter(([k,v])=>v).slice(0,4).map(([k,v])=>`${k}: ${v}`).join(' · ');
+        infoEl.textContent = summary || 'Feature found';
+        // Auto-fill land cover if field is empty
+        const lcEl = document.getElementById('land_cover_class');
+        if(lcEl && !lcEl.value && props.klasa) lcEl.value = props.klasa;
+      } else { infoEl.textContent = 'No feature — click on a coloured zone. GPS filled ✓'; }
+    } catch { infoEl.textContent = 'GPS filled ✓ (serve via HTTP for live attribute query)'; }
+    showStatus('success', `GPS coordinates filled from map click. Switch back to form to continue.`);
+  });
+
+  setTimeout(()=>mapInstance.invalidateSize(), 200);
+  document.getElementById('map-zoom').textContent = `Zoom: ${mapInstance.getZoom()}`;
+}
+
+function toggleMapLayer(name, el) {
+  if(!mapInstance || !mapLayers[name]) return;
+  el.classList.toggle('on');
+  if(el.classList.contains('on')) mapInstance.addLayer(mapLayers[name]);
+  else mapInstance.removeLayer(mapLayers[name]);
+}
+
+
+
+// ─── LOCATION DATABASE ───────────────────────────────────────────────────────
+// GPS coordinates for QTTB production areas and Albanian communes
+// Coordinate system: WGS84 decimal degrees
+const LOCATIONS = {
+  fushe_kruje: {
+    label: 'Fushë Krujë', commune: 'Fushë Krujë', district: 'Krujë',
+    lat: 41.4923, lng: 19.7156,
+    qttb_area: 'korce_apple',  // ATTC covers all crops
+    zoom: 13,
+    notes: 'ATTC headquarters — soil, meteo & pedology data available in ASIG',
+  },
+  korce: {
+    label: 'Korçë', commune: 'Korçë', district: 'Korçë',
+    lat: 40.6186, lng: 20.7784,
+    qttb_area: 'korce_apple',
+    zoom: 12,
+    notes: 'QTTB Korçë — Apple production area. Chilling hours & frost monitoring.',
+  },
+  lushnje: {
+    label: 'Lushnje', commune: 'Lushnje', district: 'Lushnje',
+    lat: 40.9419, lng: 19.7051,
+    qttb_area: 'lushnje_tomato',
+    zoom: 12,
+    notes: 'QTTB Lushnje — Tomato production area. Irrigation scheduling critical.',
+  },
+  vlore: {
+    label: 'Vlorë', commune: 'Vlorë', district: 'Vlorë',
+    lat: 40.4681, lng: 19.4835,
+    qttb_area: 'vlore_olive',
+    zoom: 12,
+    notes: 'QTTB Vlorë — Olive production area. Drought stress monitoring.',
+  },
+  // Additional Albanian communes (for manual survey use)
+  prezë:    { label: 'Prezë',    commune: 'Prezë',    district: 'Tiranë',   lat: 41.4921, lng: 19.7154, qttb_area: 'korce_apple',    zoom: 13 },
+  tirana:   { label: 'Tiranë',   commune: 'Tiranë',   district: 'Tiranë',   lat: 41.3317, lng: 19.8317, qttb_area: '',               zoom: 11 },
+  durres:   { label: 'Durrës',   commune: 'Durrës',   district: 'Durrës',   lat: 41.3248, lng: 19.4413, qttb_area: '',               zoom: 11 },
+  shkoder:  { label: 'Shkodër',  commune: 'Shkodër',  district: 'Shkodër',  lat: 42.0683, lng: 19.5126, qttb_area: '',               zoom: 11 },
+  elbasan:  { label: 'Elbasan',  commune: 'Elbasan',  district: 'Elbasan',  lat: 41.1125, lng: 20.0822, qttb_area: '',               zoom: 11 },
+  berat:    { label: 'Berat',    commune: 'Berat',    district: 'Berat',    lat: 40.7058, lng: 19.9522, qttb_area: '',               zoom: 11 },
+  gjirokastra:{ label: 'Gjirokastër', commune: 'Gjirokastër', district: 'Gjirokastër', lat: 40.0758, lng: 20.1389, qttb_area: '', zoom: 11 },
+  sarande:  { label: 'Sarandë', commune: 'Sarandë',  district: 'Sarandë',  lat: 39.8756, lng: 20.0044, qttb_area: 'vlore_olive',    zoom: 11 },
+  pogradec: { label: 'Pogradec', commune: 'Pogradec', district: 'Korçë',    lat: 40.9025, lng: 20.6522, qttb_area: 'korce_apple',    zoom: 11 },
+  kavaje:   { label: 'Kavajë',  commune: 'Kavajë',   district: 'Tiranë',   lat: 41.1861, lng: 19.5572, qttb_area: 'lushnje_tomato', zoom: 11 },
+  lezhe:    { label: 'Lezhë',   commune: 'Lezhë',    district: 'Lezhë',    lat: 41.7836, lng: 19.6444, qttb_area: '',               zoom: 11 },
+  kukes:    { label: 'Kukës',   commune: 'Kukës',    district: 'Kukës',    lat: 42.0786, lng: 20.4219, qttb_area: '',               zoom: 11 },
+};
+
+let activeLocation = null;
+
+function selectLocation(key) {
+  const loc = LOCATIONS[key];
+  if(!loc) return;
+  activeLocation = key;
+
+  // Highlight active button
+  document.querySelectorAll('.loc-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('loc-' + key);
+  if(btn) btn.classList.add('active');
+
+  // Fill GPS
+  setFieldHighlighted('gps_n', loc.lat.toFixed(6));
+  setFieldHighlighted('gps_e', loc.lng.toFixed(6));
+
+  // Fill commune and district
+  setFieldHighlighted('commune', loc.commune);
+
+  // Fill QTTB area selector
+  if(loc.qttb_area) {
+    const sel = document.getElementById('qttb_area');
+    if(sel && !sel.value) sel.value = loc.qttb_area;
+  }
+
+  // Update location status
+  const status = document.getElementById('loc-status');
+  status.textContent = `✓ ${loc.label} — GPS: ${loc.lat.toFixed(4)}°N, ${loc.lng.toFixed(4)}°E${loc.notes ? ' · ' + loc.notes : ''}`;
+
+  // Zoom map if already open
+  if(mapInstance && LOCATIONS[key]) {
+    mapInstance.setView([loc.lat, loc.lng], loc.zoom || 12);
+  }
+
+  updateProgress();
+
+  // Auto-trigger ASIG fetch after a short delay
+  const asigStatus = document.getElementById('asig-status');
+  if(asigStatus) {
+    asigStatus.textContent = 'Location set — click "Fill from ASIG" to load layer data';
+    asigStatus.style.color = '#2B5F3F';
+  }
+}
+
+function searchCommune(val) {
+  if(!val || val.length < 2) return;
+  const v = val.toLowerCase().trim();
+
+  // Try to match a known location
+  const match = Object.entries(LOCATIONS).find(([k, loc]) =>
+    loc.commune.toLowerCase().includes(v) || loc.label.toLowerCase().includes(v) || k.includes(v)
+  );
+
+  if(match) {
+    const [key, loc] = match;
+    // Fill GPS silently (don't change active button)
+    setFieldHighlighted('gps_n', loc.lat.toFixed(6));
+    setFieldHighlighted('gps_e', loc.lng.toFixed(6));
+    setFieldHighlighted('commune', loc.commune);
+    if(loc.qttb_area) {
+      const sel = document.getElementById('qttb_area');
+      if(sel && !sel.value) sel.value = loc.qttb_area;
+    }
+    document.getElementById('loc-status').textContent =
+      `✓ Matched: ${loc.label} — GPS: ${loc.lat.toFixed(4)}°N, ${loc.lng.toFixed(4)}°E`;
+    if(mapInstance) mapInstance.setView([loc.lat, loc.lng], loc.zoom || 12);
+    updateProgress();
+  } else {
+    // Unknown commune — just fill commune field from typed text
+    const el = document.getElementById('commune');
+    if(el) el.value = val;
+    document.getElementById('loc-status').textContent =
+      `"${val}" not in presets — enter GPS manually or use the map tab`;
+    document.getElementById('loc-status').style.color = '#B8720A';
+  }
+}
+
+function setFieldHighlighted(id, val) {
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.value = val;
+  el.classList.add('api-filled');
+  // Remove highlight when user edits manually
+  el.addEventListener('input', () => el.classList.remove('api-filled'), { once: true });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ASIG API INTEGRATION
+// Endpoint: geoportal.asig.gov.al/service/qttb/ows (confirmed live)
+// Layers: perdorimi_tokes_2020, pedologjia_23042024, Tipet_e_tokes_07082019,
+//         Pershtatshmeria_07082019, kadastra_e_ullishteve (+ ZRPP parcels)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const QTTB_OWS = 'https://geoportal.asig.gov.al/service/qttb/ows';
+const ZRPP_OWS = 'https://geoportal.asig.gov.al/service/zrpp/ows';
+
+// Field mapping: ASIG attribute name → form field id + label
+const ASIG_FIELD_MAP = {
+  // Land use layer (perdorimi_tokes_2020)
+  'perdorimi_tokes': { field: 'land_cover_class',   label: 'Land cover class' },
+  'klasa':           { field: 'land_cover_class',   label: 'Land cover class' },
+  'lloji':           { field: 'erosion_desc',        label: 'Land type desc.' },
+  'siperfaqja':      { field: null,                  label: 'Area (ha)' },  // display only
+  // Pedology layer (pedologjia_23042024)
+  'pedologjia':      { field: 'soil_type',           label: 'Soil type' },
+  'tipi_tokes':      { field: 'soil_type',           label: 'Soil type' },
+  'wrb':             { field: 'soil_type',           label: 'Soil type (WRB)' },
+  // Soil types layer (Tipet_e_tokes_07082019)
+  'tipi':            { field: 'soil_type',           label: 'Soil type' },
+  'kodi':            { field: 'land_cover_class',    label: 'Soil code' },
+  // Suitability layer (Pershtatshmeria_07082019)
+  'pershtatshmeria': { field: 'flooding_info',       label: 'Suitability class' },
+  'klasa_persh':     { field: 'flooding_info',       label: 'Suitability class' },
+  // ZRPP cadastre
+  'nr_parc':         { field: 'ref_no',              label: 'Parcel No.' },
+  'emri_zones':      { field: 'commune',             label: 'Zone / commune' },
+  'zona':            { field: 'commune',             label: 'Zone' },
+};
+
+async function fetchASIG() {
+  const lat = parseFloat(document.getElementById('gps_n').value);
+  const lng = parseFloat(document.getElementById('gps_e').value);
+
+  if(!lat || !lng || isNaN(lat) || isNaN(lng)) {
+    setAsigStatus('error', 'Enter GPS E and N first');
+    return;
+  }
+
+  setAsigStatus('loading', 'Querying ASIG layers…');
+
+  // Create a small bbox around the point (±0.001° ≈ ±100m)
+  const d = 0.001;
+  const bbox = `${lat-d},${lng-d},${lat+d},${lng+d},EPSG:4326`;
+
+  // Query all 4 QTTB layers + ZRPP cadastre in parallel
+  const queries = [
+    { url: QTTB_OWS, layer: 'perdorimi_tokes_2020',    label: 'Land use 2020' },
+    { url: QTTB_OWS, layer: 'pedologjia_23042024',     label: 'Pedology' },
+    { url: QTTB_OWS, layer: 'Tipet_e_tokes_07082019',  label: 'Soil types' },
+    { url: QTTB_OWS, layer: 'Pershtatshmeria_07082019', label: 'Suitability' },
+    { url: ZRPP_OWS, layer: 'parcela_kadastrale_qkd_042025', label: 'Cadastral parcel' },
+  ];
+
+  const results = await Promise.allSettled(queries.map(async q => {
+    const params = new URLSearchParams({
+      SERVICE: 'WFS', VERSION: '2.0.0', REQUEST: 'GetFeature',
+      TYPENAMES: q.layer,
+      SRSNAME: 'EPSG:4326',
+      OUTPUTFORMAT: 'application/json',
+      COUNT: '1',
+      BBOX: bbox,
+    });
+    const resp = await fetch(`${q.url}?${params}`, { mode: 'cors' });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    return { label: q.label, layer: q.layer, features: data.features || [] };
+  }));
+
+  const filled = [];
+  let anyData = false;
+
+  results.forEach(r => {
+    if(r.status === 'rejected') return;
+    const { label, layer, features } = r.value;
+    if(!features.length) return;
+    anyData = true;
+
+    const props = features[0].properties || {};
+
+    // Map known attributes to form fields
+    Object.entries(props).forEach(([key, val]) => {
+      if(val === null || val === '' || String(val) === 'null') return;
+      const lower = key.toLowerCase();
+
+      // Direct field mapping
+      const mapping = ASIG_FIELD_MAP[key] || ASIG_FIELD_MAP[lower];
+      if(mapping && mapping.field) {
+        const el = document.getElementById(mapping.field);
+        if(el && !el.value) { // only fill if empty (don't overwrite manual entry)
+          el.value = String(val);
+          el.style.borderColor = '#2B5F3F';
+          el.style.background = '#E8F2EC';
+          filled.push(`${mapping.label}: "${val}" ← ${label}`);
+          updateProgress();
+        }
+      }
+
+      // Smart field detection by key name patterns
+      if(!mapping) {
+        const fieldMap = detectFieldByKeyName(lower, val);
+        if(fieldMap) {
+          const el = document.getElementById(fieldMap.field);
+          if(el && !el.value) {
+            el.value = String(val);
+            el.style.borderColor = '#2B5F3F';
+            el.style.background = '#E8F2EC';
+            filled.push(`${fieldMap.label} ("${key}"): "${val}" ← ${label}`);
+            updateProgress();
+          }
+        }
+      }
+    });
+
+    // Area / slope from geometry if available
+    const geom = features[0].geometry;
+    if(geom && geom.type === 'Polygon' && props.siperfaqja) {
+      filled.push(`Area: ${parseFloat(props.siperfaqja).toFixed(2)} ha ← ${label} (display only)`);
+    }
+  });
+
+  if(!anyData) {
+    setAsigStatus('warn', 'No features at these coordinates. Check GPS or use HTTP server.');
+    return;
+  }
+
+  if(filled.length === 0) {
+    setAsigStatus('ok', `Data found but fields already filled (${results.filter(r=>r.status==='fulfilled').length} layers hit)`);
+  } else {
+    setAsigStatus('ok', `${filled.length} field(s) filled from ASIG`);
+    const el = document.getElementById('asig-filled-fields');
+    el.style.display = 'block';
+    el.innerHTML = '<strong>Auto-filled from ASIG (green = API, white = manual):</strong><br>' +
+      filled.map(f => '· ' + f).join('<br>');
+  }
+}
+
+function detectFieldByKeyName(key, val) {
+  if(key.includes('slope') || key === 'pjerresia') return { field: 'slope_pct', label: 'Slope %' };
+  if(key.includes('depth') || key.includes('thellesi')) return { field: 'taw_100', label: 'Depth/TAW' };
+  if(key.includes('drain') || key.includes('kullim')) return { field: 'drainage_class', label: 'Drainage' };
+  if(key.includes('texture') || key.includes('struktur')) return { field: 'land_cover_class', label: 'Texture' };
+  if(key.includes('flood') || key.includes('permbytje')) return { field: 'flood_risk', label: 'Flood risk' };
+  if(key.includes('erosion') || key.includes('erozioni')) return { field: 'erosion_class', label: 'Erosion' };
+  if(key.includes('irrigation') || key.includes('ujitje')) return { field: 'irrigation_system', label: 'Irrigation' };
+  if(key.includes('commune') || key.includes('bashki') || key.includes('komuna')) return { field: 'commune', label: 'Commune' };
+  if(key.includes('landform') || key.includes('reliev')) return { field: 'landform_class', label: 'Landform' };
+  return null;
+}
+
+function setAsigStatus(type, msg) {
+  const el = document.getElementById('asig-status');
+  const colors = { loading:'#B8720A', ok:'#2B5F3F', warn:'#B8720A', error:'#C0392B' };
+  el.textContent = msg;
+  el.style.color = colors[type] || '#6B6860';
+}
+
+function clearApiStatus() {
+  document.getElementById('asig-status').textContent = '';
+  const el = document.getElementById('asig-filled-fields');
+  if(el) el.style.display = 'none';
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// COPERNICUS DATA SPACE API INTEGRATION
+// Endpoint: https://sh.dataspace.copernicus.eu/api/v1/process
+// Auth: OAuth2 via https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token
+// Free tier: 30,000 processing units/month — sufficient for field surveys
+// Register: https://dataspace.copernicus.eu → Create account → Dashboard → OAuth clients
+// ═══════════════════════════════════════════════════════════════════════════
+
+const CDSE_TOKEN_URL = 'https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token';
+const CDSE_PROCESS_URL = 'https://sh.dataspace.copernicus.eu/api/v1/process';
+
+let copernicusToken = null;
+let tokenExpiry = 0;
+
+async function getCopernicusToken() {
+  const clientId = document.getElementById('cop_client_id').value.trim();
+  const clientSecret = document.getElementById('cop_client_secret').value.trim();
+  if(!clientId || !clientSecret) return null;
+
+  if(copernicusToken && Date.now() < tokenExpiry) return copernicusToken;
+
+  try {
+    const resp = await fetch(CDSE_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: clientId,
+        client_secret: clientSecret,
+      })
+    });
+    if(!resp.ok) throw new Error('Auth failed: ' + resp.status);
+    const data = await resp.json();
+    copernicusToken = data.access_token;
+    tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
+    return copernicusToken;
+  } catch(e) {
+    return null;
+  }
+}
+
+async function testCopernicusAPI() {
+  const statusEl = document.getElementById('cop-api-status');
+  statusEl.textContent = 'Testing…';
+  statusEl.style.color = '#B8720A';
+  const token = await getCopernicusToken();
+  if(token) {
+    statusEl.textContent = '✓ Connected — token valid';
+    statusEl.style.color = '#2B5F3F';
+  } else {
+    statusEl.textContent = '✗ Not connected — check credentials';
+    statusEl.style.color = '#C0392B';
+  }
+}
+
+function updateCopernicusStatus() {
+  const hasId = document.getElementById('cop_client_id').value.trim();
+  const hasSecret = document.getElementById('cop_client_secret').value.trim();
+  const el = document.getElementById('cop-api-status');
+  if(hasId && hasSecret) {
+    el.textContent = 'Credentials entered — click Test';
+    el.style.color = '#B8720A';
+  } else {
+    el.textContent = 'Not configured';
+    el.style.color = '#6B6860';
+  }
+}
+
+async function fetchCopernicus() {
+  const lat = parseFloat(document.getElementById('gps_n').value);
+  const lng = parseFloat(document.getElementById('gps_e').value);
+  const statusEl = document.getElementById('copernicus-status');
+
+  if(!lat || !lng || isNaN(lat) || isNaN(lng)) {
+    statusEl.textContent = 'Enter GPS first';
+    statusEl.style.color = '#C0392B';
+    return;
+  }
+
+  statusEl.textContent = 'Fetching…';
+  statusEl.style.color = '#B8720A';
+
+  const token = await getCopernicusToken();
+
+  if(!token) {
+    // No API key — use open WMS to at least get a tile and estimate NDVI visually
+    // Fall back to showing the open Copernicus Land Service soil moisture product
+    statusEl.textContent = 'No API key — enter credentials above';
+    statusEl.style.color = '#C0392B';
+    // Still try the open Copernicus Global Land Service for soil moisture
+    await fetchOpenCopernicusProducts(lat, lng, statusEl);
+    return;
+  }
+
+  // With API key: fetch NDVI, EVI, soil moisture for a 0.01°×0.01° box around point
+  const d = 0.005;
+  const bbox = [lng-d, lat-d, lng+d, lat+d];
+  const today = new Date();
+  const toDate = today.toISOString().slice(0,10);
+  const fromDate = new Date(today - 30*24*3600*1000).toISOString().slice(0,10);
+
+  const evalscript_ndvi = `//VERSION=3
+function setup() { return { input: ['B04','B08','B11','dataMask'], output: { bands: 4 } }; }
+function evaluatePixel(s) {
+  const ndvi = (s.B08-s.B04)/(s.B08+s.B04);
+  const evi  = 2.5*(s.B08-s.B04)/(s.B08+6*s.B04-7.5*0.0001+1);
+  const ndwi = (s.B08-s.B11)/(s.B08+s.B11);
+  return [ndvi, evi, ndwi, s.dataMask[0]];
+}`;
+
+  try {
+    const resp = await fetch(CDSE_PROCESS_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        input: {
+          bounds: { bbox, properties: { crs: 'http://www.opengis.net/def/crs/OGC/1.3/CRS84' } },
+          data: [{ type: 'sentinel-2-l2a', dataFilter: {
+            timeRange: { from: fromDate + 'T00:00:00Z', to: toDate + 'T23:59:59Z' },
+            maxCloudCoverage: 30,
+          }}]
+        },
+        evalscript: evalscript_ndvi,
+        output: {
+          width: 1, height: 1,
+          responses: [{ identifier: 'default', format: { type: 'application/json' } }]
+        }
+      })
+    });
+
+    if(!resp.ok) throw new Error('Process API: ' + resp.status);
+    const data = await resp.json();
+
+    // Extract mean values from the single-pixel response
+    if(data && data.data && data.data.length) {
+      const vals = data.data[0].stats || data.data[0];
+      const ndvi = vals.mean ? vals.mean[0] : (Array.isArray(vals) ? vals[0] : null);
+      const evi  = vals.mean ? vals.mean[1] : (Array.isArray(vals) ? vals[1] : null);
+      const ndwi = vals.mean ? vals.mean[2] : (Array.isArray(vals) ? vals[2] : null);
+
+      if(ndvi !== null) { setApiField('ndvi', ndvi.toFixed(3)); }
+      if(evi  !== null) { setApiField('evi',  evi.toFixed(3)); }
+      if(ndwi !== null) { setApiField('ndwi', ndwi.toFixed(3)); }
+
+      // Derive water stress class from NDVI
+      const stressClass = ndvi > 0.6 ? 'none' : ndvi > 0.45 ? 'low' : ndvi > 0.3 ? 'medium' : ndvi > 0.15 ? 'high' : 'severe';
+      setApiField('water_stress_class', stressClass);
+
+      statusEl.textContent = `✓ NDVI:${ndvi ? ndvi.toFixed(2) : '—'} EVI:${evi ? evi.toFixed(2) : '—'} NDWI:${ndwi ? ndwi.toFixed(2) : '—'} (S-2, last 30d)`;
+      statusEl.style.color = '#2B5F3F';
+      setApiField('meteo_source', 'copernicus');
+    } else {
+      statusEl.textContent = 'No Sentinel-2 data in last 30 days (cloud cover?)';
+      statusEl.style.color = '#B8720A';
+    }
+
+    // Also fetch Sentinel-1 soil moisture (SAR backscatter proxy)
+    await fetchSentinel1SoilMoisture(lat, lng, bbox, token);
+
+  } catch(e) {
+    statusEl.textContent = 'Error: ' + e.message;
+    statusEl.style.color = '#C0392B';
+  }
+}
+
+async function fetchSentinel1SoilMoisture(lat, lng, bbox, token) {
+  const evalscript_s1 = `//VERSION=3
+function setup() { return { input: ['VV','VH','dataMask'], output: { bands: 3 } }; }
+function evaluatePixel(s) {
+  const sm_proxy = Math.max(0, Math.min(1, (s.VV + 30) / 30));
+  return [s.VV, s.VH, sm_proxy];
+}`;
+  const today = new Date(), toDate = today.toISOString().slice(0,10);
+  const fromDate = new Date(today - 15*24*3600*1000).toISOString().slice(0,10);
+  try {
+    const resp = await fetch(CDSE_PROCESS_URL, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({
+        input: {
+          bounds: { bbox, properties: { crs: 'http://www.opengis.net/def/crs/OGC/1.3/CRS84' } },
+          data: [{ type: 'sentinel-1-grd', dataFilter: {
+            timeRange: { from: fromDate + 'T00:00:00Z', to: toDate + 'T23:59:59Z' },
+            acquisitionMode: 'IW', polarization: 'DV',
+          }}]
+        },
+        evalscript: evalscript_s1,
+        output: { width: 1, height: 1, responses: [{ identifier: 'default', format: { type: 'application/json' } }] }
+      })
+    });
+    if(!resp.ok) return;
+    const data = await resp.json();
+    if(data && data.data && data.data.length) {
+      const sm_proxy = data.data[0].stats ? data.data[0].stats.mean[2] : null;
+      if(sm_proxy !== null) {
+        setApiField('sm_index', sm_proxy.toFixed(3));
+        // Rough conversion: S-1 backscatter proxy to volumetric moisture
+        const sm_vol = Math.round(sm_proxy * 45);
+        setApiField('sm_10', sm_vol);
+      }
+    }
+  } catch(e) { /* silent — S-1 is bonus data */ }
+}
+
+async function fetchOpenCopernicusProducts(lat, lng, statusEl) {
+  // Without API key: use the Copernicus Global Land Service open REST API
+  // for soil moisture index (SSM) — free, no auth needed
+  const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  const url = `https://land.copernicus.eu/api/v1/products/SSM/point?lat=${lat}&lon=${lng}&date=${dateStr}`;
+  try {
+    const resp = await fetch(url, { mode: 'cors' });
+    if(!resp.ok) throw new Error('No open data');
+    const data = await resp.json();
+    if(data.value !== undefined) {
+      setApiField('sm_index', parseFloat(data.value).toFixed(3));
+      statusEl.textContent = `SM index: ${data.value} (Copernicus GLS, no key needed)`;
+      statusEl.style.color = '#2B5F3F';
+    }
+  } catch {
+    statusEl.textContent = 'Add Copernicus credentials above for NDVI/SM data';
+    statusEl.style.color = '#6B6860';
+  }
+}
+
+// Helper: set a field value and mark it as API-sourced (green border)
+function setApiField(id, val) {
+  const el = document.getElementById(id);
+  if(!el || el.value) return; // don't overwrite manually entered data
+  if(el.tagName === 'SELECT') {
+    for(const opt of el.options) {
+      if(opt.value === String(val) || opt.text.startsWith(String(val))) {
+        el.value = opt.value; break;
+      }
+    }
+  } else {
+    el.value = val;
+  }
+  el.style.borderColor = '#2B5F3F';
+  el.style.background = '#E8F2EC';
+  updateProgress();
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SUPABASE DATABASE INTEGRATION
+// Tables: soil_surveys, soil_horizons, meteo_observations
+// Schema: db/schema.sql
+// ═══════════════════════════════════════════════════════════════════════════
+
+const DB_CONFIG_KEY = 'qttb_db_config';
+
+function getDbConfig() {
+  try { return JSON.parse(localStorage.getItem(DB_CONFIG_KEY) || 'null'); } catch { return null; }
+}
+
+function saveDbConfig() {
+  const url = document.getElementById('sb-url').value.trim();
+  const key = document.getElementById('sb-key').value.trim();
+  if(!url || !key) { setDbTestStatus('error', 'Enter both URL and key'); return; }
+  localStorage.setItem(DB_CONFIG_KEY, JSON.stringify({ url, key }));
+  setDbTestStatus('loading', 'Testing connection…');
+  testDbConnection(url, key);
+}
+
+async function testDbConnection(url, key) {
+  try {
+    const resp = await fetch(`${url}/rest/v1/soil_surveys?limit=1`, {
+      headers: { 'apikey': key, 'Authorization': 'Bearer ' + key }
+    });
+    if(resp.ok) {
+      setDbTestStatus('ok', '✓ Connected — database ready');
+      updateDbBtn(true);
+      setTimeout(closeDbConfig, 1500);
+    } else if(resp.status === 404) {
+      setDbTestStatus('error', '✗ Table not found — run db/schema.sql first');
+    } else {
+      setDbTestStatus('error', '✗ Error ' + resp.status + ' — check credentials');
+    }
+  } catch(e) {
+    setDbTestStatus('error', '✗ Connection failed — check URL');
+  }
+}
+
+function setDbTestStatus(type, msg) {
+  const el = document.getElementById('db-test-status');
+  const colors = { loading:'#B8720A', ok:'#2B5F3F', error:'#C0392B' };
+  el.textContent = msg;
+  el.style.color = colors[type] || '#6B6860';
+}
+
+function showDbConfig() {
+  const cfg = getDbConfig();
+  if(cfg) {
+    document.getElementById('sb-url').value = cfg.url || '';
+    document.getElementById('sb-key').value = cfg.key || '';
+  }
+  document.getElementById('db-modal').style.display = 'flex';
+}
+
+function closeDbConfig() {
+  document.getElementById('db-modal').style.display = 'none';
+}
+
+function updateDbBtn(connected) {
+  const btn = document.getElementById('db-btn');
+  if(btn) {
+    btn.textContent = connected ? '✓ Database' : '⚙ Database';
+    btn.style.color = connected ? '#2B5F3F' : '';
+  }
+}
+
+// ── SAVE TO SUPABASE ─────────────────────────────────────────
+async function saveToSupabase(soilData, meteoData) {
+  const cfg = getDbConfig();
+  if(!cfg) return null;
+
+  const headers = {
+    'apikey': cfg.key,
+    'Authorization': 'Bearer ' + cfg.key,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation',
+  };
+
+  // 1. Insert soil survey
+  const surveyPayload = {
+    ref_no:           soilData.ref_no || null,
+    commune:          soilData.commune || null,
+    survey_date:      soilData.survey_date || null,
+    surveyor:         soilData.surveyor || null,
+    gps_e:            parseFloat(soilData.gps_e) || null,
+    gps_n:            parseFloat(soilData.gps_n) || null,
+    qttb_area:        soilData.qttb_area || null,
+    slope_pct:        parseFloat(soilData.slope_pct) || null,
+    slope_class:      parseInt(soilData.slope_class) || null,
+    landform:         parseInt(soilData.landform) || null,
+    landform_class:   soilData.landform_class || null,
+    water_table:      soilData.water_table || null,
+    irrigation_system: parseInt(soilData.irrigation_system) || null,
+    irrigation_type:  soilData.irrigation_type || null,
+    drainage_class:   parseInt(soilData.drainage_class) || null,
+    drainage_channels: parseInt(soilData.drainage_channels) || null,
+    underdrains:      parseInt(soilData.underdrains) || null,
+    brazda:           soilData.brazda || null,
+    flood_risk:       parseInt(soilData.flood_risk) || null,
+    land_cover:       parseInt(soilData.land_cover) || null,
+    land_cover_class: soilData.land_cover_class || null,
+    erosion_desc:     soilData.erosion_desc || null,
+    erosion_class:    parseInt(soilData.erosion_class) || null,
+    erosion_risk:     parseInt(soilData.erosion_risk) || null,
+    erodibility:      parseInt(soilData.erodibility) || null,
+    topsoil_h:        parseInt(soilData.topsoil_h) || null,
+    subsoil_j:        parseInt(soilData.subsoil_j) || null,
+    depth_class:      parseInt(soilData.depth_class) || null,
+    taw_class:        parseInt(soilData.taw_class) || null,
+    taw_100:          parseFloat(soilData.taw_100) || null,
+    soil_type:        soilData.soil_type || null,
+    flooding_info:    soilData.flooding_info || null,
+    plant_health:     parseInt(soilData.plant_health) || null,
+    disease_pest:     soilData.disease_pest || null,
+    phenology:        soilData.phenology || null,
+    observations:     soilData.observations || null,
+    data_source:      'manual',
+  };
+
+  const surveyResp = await fetch(`${cfg.url}/rest/v1/soil_surveys`, {
+    method: 'POST', headers, body: JSON.stringify(surveyPayload)
+  });
+
+  if(!surveyResp.ok) {
+    const err = await surveyResp.text();
+    throw new Error('Survey save failed: ' + err);
+  }
+
+  const [survey] = await surveyResp.json();
+  const surveyId = survey.id;
+
+  // 2. Insert horizons
+  if(soilData.horizons && soilData.horizons.length) {
+    const horizonPayload = soilData.horizons
+      .filter(h => h.horizon || h.depth)
+      .map((h, i) => ({
+        survey_id:      surveyId,
+        horizon_order:  i + 1,
+        horizon_label:  h.horizon || null,
+        depth_from_cm:  h.depth ? parseInt(h.depth.split('-')[0]) : null,
+        depth_to_cm:    h.depth ? parseInt(h.depth.split('-')[1]) : null,
+        thickness_cm:   parseInt(h.thickness) || null,
+        colour:         h.colour || null,
+        mottles_o:      h.mottles_O || null,
+        mottles_d:      h.mottles_D || null,
+        mottles_rg:     h.mottles_RG || null,
+        texture_class:  h.texture_class || null,
+        taw_group:      h.taw_group || null,
+        taw_mm_cm:      parseFloat(h.taw_mm_cm) || null,
+        consistency:    h.consistency || null,
+        ataw:           parseFloat(h.aTAW) || null,
+        stones_pct:     parseFloat(h.stones_pct) || null,
+        stone_class:    h.stone_class || null,
+        stone_free_pct: parseFloat(h.stone_free_pct) || null,
+        taw_mm_cols:    parseFloat(h.taw_mm_cols) || null,
+      }));
+
+    if(horizonPayload.length) {
+      await fetch(`${cfg.url}/rest/v1/soil_horizons`, {
+        method: 'POST', headers, body: JSON.stringify(horizonPayload)
+      });
+    }
+  }
+
+  // 3. Insert meteo observation
+  if(meteoData && Object.values(meteoData).some(v => v)) {
+    const meteoPayload = {
+      survey_id:      surveyId,
+      meteo_station:  meteoData.meteo_station || null,
+      obs_date:       meteoData.meteo_date || null,
+      obs_time:       meteoData.meteo_time || null,
+      data_source:    meteoData.meteo_source || 'manual',
+      temp_min:       parseFloat(meteoData.temp_min) || null,
+      temp_max:       parseFloat(meteoData.temp_max) || null,
+      temp_mean:      parseFloat(meteoData.temp_mean) || null,
+      lst:            parseFloat(meteoData.lst) || null,
+      soil_temp_10:   parseFloat(meteoData.soil_temp_10) || null,
+      soil_temp_30:   parseFloat(meteoData.soil_temp_30) || null,
+      gdd:            parseFloat(meteoData.gdd) || null,
+      chill_hours:    parseFloat(meteoData.chill_hours) || null,
+      frost_days:     parseInt(meteoData.frost_days) || null,
+      heat_stress_days: parseInt(meteoData.heat_stress_days) || null,
+      temp_anomaly:   parseFloat(meteoData.temp_anomaly) || null,
+      rainfall_daily: parseFloat(meteoData.rainfall_daily) || null,
+      rainfall_monthly: parseFloat(meteoData.rainfall_monthly) || null,
+      rainfall_seasonal: parseFloat(meteoData.rainfall_seasonal) || null,
+      rainfall_anomaly: parseFloat(meteoData.rainfall_anomaly) || null,
+      rh_min:         parseFloat(meteoData.rh_min) || null,
+      rh_max:         parseFloat(meteoData.rh_max) || null,
+      rh_mean:        parseFloat(meteoData.rh_mean) || null,
+      dew_point:      parseFloat(meteoData.dew_point) || null,
+      eto:            parseFloat(meteoData.eto) || null,
+      etc:            parseFloat(meteoData.etc) || null,
+      water_deficit:  parseFloat(meteoData.water_deficit) || null,
+      soil_water_balance: parseFloat(meteoData.soil_water_balance) || null,
+      sm_10:          parseFloat(meteoData.sm_10) || null,
+      sm_30:          parseFloat(meteoData.sm_30) || null,
+      sm_60:          parseFloat(meteoData.sm_60) || null,
+      sm_index:       parseFloat(meteoData.sm_index) || null,
+      ndvi:           parseFloat(meteoData.ndvi) || null,
+      evi:            parseFloat(meteoData.evi) || null,
+      ndwi:           parseFloat(meteoData.ndwi) || null,
+      water_stress_class: meteoData.water_stress_class || null,
+      wind_speed:     parseFloat(meteoData.wind_speed) || null,
+      wind_dir:       meteoData.wind_dir || null,
+      solar_rad:      parseFloat(meteoData.solar_rad) || null,
+      sunshine_hrs:   parseFloat(meteoData.sunshine_hrs) || null,
+      disease_risk:   meteoData.disease_risk || null,
+      drought_stress: meteoData.drought_stress || null,
+      alternate_bearing: meteoData.alternate_bearing || null,
+      meteo_notes:    meteoData.meteo_notes || null,
+    };
+
+    await fetch(`${cfg.url}/rest/v1/meteo_observations`, {
+      method: 'POST', headers, body: JSON.stringify(meteoPayload)
+    });
+  }
+
+  return surveyId;
+}
+
+// ── LOAD FROM SUPABASE ───────────────────────────────────────
+async function loadFromSupabase() {
+  const cfg = getDbConfig();
+  if(!cfg) { showStatus('error', 'Database not configured — click ⚙ Database'); return; }
+
+  try {
+    const resp = await fetch(
+      `${cfg.url}/rest/v1/survey_summary?order=created_at.desc&limit=100`,
+      { headers: { 'apikey': cfg.key, 'Authorization': 'Bearer ' + cfg.key } }
+    );
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const surveys = await resp.json();
+    renderDbRecords(surveys);
+    showStatus('success', `Loaded ${surveys.length} records from database`);
+  } catch(e) {
+    showStatus('error', 'Load failed: ' + e.message);
+  }
+}
+
+function renderDbRecords(surveys) {
+  const container = document.getElementById('records-list');
+  if(!surveys.length) {
+    container.innerHTML = '<p style="color:var(--text-muted); font-size:13px; text-align:center; padding:32px 0;">No records in database yet.</p>';
+    return;
+  }
+  container.innerHTML = surveys.map(s => {
+    const areaLabel = {korce_apple:'Korçë – Apple', lushnje_tomato:'Lushnje – Tomato', vlore_olive:'Vlorë – Olive'}[s.qttb_area] || s.qttb_area || '—';
+    const ndviStr = s.ndvi ? ` · NDVI: ${parseFloat(s.ndvi).toFixed(2)}` : '';
+    return `<div class="record-item">
+      <div>
+        <div style="font-weight:500">${s.commune||'—'} &nbsp;·&nbsp; ${areaLabel} &nbsp;·&nbsp; ${s.surveyor||'—'}</div>
+        <div class="record-meta">Ref: ${s.ref_no||'—'} | Date: ${s.survey_date||'—'} | Soil: ${s.soil_type||'—'} | TAW: ${s.taw_100||'—'}mm | Horizons: ${s.horizon_count||0}${ndviStr} | DB id: ${s.id}</div>
+      </div>
+      <div class="record-actions">
+        <button class="btn btn-outline" style="font-size:11px; padding:4px 10px;" onclick="loadDbRecord(${s.id})">Load</button>
+        <button class="btn btn-danger" style="font-size:11px; padding:4px 10px;" onclick="deleteDbRecord(${s.id})">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function loadDbRecord(id) {
+  const cfg = getDbConfig();
+  if(!cfg) return;
+  try {
+    const [sResp, hResp, mResp] = await Promise.all([
+      fetch(`${cfg.url}/rest/v1/soil_surveys?id=eq.${id}`, { headers: { 'apikey': cfg.key, 'Authorization': 'Bearer ' + cfg.key } }),
+      fetch(`${cfg.url}/rest/v1/soil_horizons?survey_id=eq.${id}&order=horizon_order`, { headers: { 'apikey': cfg.key, 'Authorization': 'Bearer ' + cfg.key } }),
+      fetch(`${cfg.url}/rest/v1/meteo_observations?survey_id=eq.${id}&limit=1`, { headers: { 'apikey': cfg.key, 'Authorization': 'Bearer ' + cfg.key } }),
+    ]);
+    const [survey] = await sResp.json();
+    const horizons = await hResp.json();
+    const [meteo] = await mResp.json() || [{}];
+
+    // Map DB columns back to form field names
+    const s = { ...survey,
+      gps_e: survey.gps_e, gps_n: survey.gps_n,
+      horizons: horizons.map(h => ({
+        horizon: h.horizon_label, depth: `${h.depth_from_cm}-${h.depth_to_cm}`,
+        thickness: h.thickness_cm, colour: h.colour,
+        mottles_O: h.mottles_o, mottles_D: h.mottles_d, mottles_RG: h.mottles_rg,
+        texture_class: h.texture_class, taw_group: h.taw_group, taw_mm_cm: h.taw_mm_cm,
+        consistency: h.consistency, aTAW: h.ataw, stones_pct: h.stones_pct,
+        stone_class: h.stone_class, stone_free_pct: h.stone_free_pct, taw_mm_cols: h.taw_mm_cols,
+      }))
+    };
+    const m = meteo ? { ...meteo, meteo_date: meteo.obs_date, meteo_time: meteo.obs_time, meteo_source: meteo.data_source } : {};
+    fillFormFromData(s, m);
+
+    // Switch to soil tab
+    document.querySelectorAll('.tab')[0].click();
+    showStatus('success', `Loaded DB record #${id} — ${survey.commune}, ${survey.survey_date}`);
+  } catch(e) {
+    showStatus('error', 'Load failed: ' + e.message);
+  }
+}
+
+async function deleteDbRecord(id) {
+  if(!confirm(`Delete record #${id} from database? This cannot be undone.`)) return;
+  const cfg = getDbConfig();
+  if(!cfg) return;
+  try {
+    await fetch(`${cfg.url}/rest/v1/soil_surveys?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: { 'apikey': cfg.key, 'Authorization': 'Bearer ' + cfg.key }
+    });
+    loadFromSupabase();
+    showStatus('success', `Record #${id} deleted from database`);
+  } catch(e) {
+    showStatus('error', 'Delete failed: ' + e.message);
+  }
+}
+
+
+buildHorizons();
+updateRecordCount();
+updateProgress();
+
+document.getElementById('meteo_date').value = document.getElementById('survey_date').value;
+document.getElementById('survey_date').addEventListener('change', function() {
+  if(!document.getElementById('meteo_date').value) document.getElementById('meteo_date').value = this.value;
+});
+</script>
+</body>
+</html>
