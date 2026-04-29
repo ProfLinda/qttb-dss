@@ -2486,32 +2486,39 @@ async function fetchCopernicus() {
   const from = new Date(Date.now()-45*24*3600*1000).toISOString().slice(0,10)+'T00:00:00Z';
   const to   = new Date().toISOString().slice(0,10)+'T23:59:59Z';
 
-  // Statistical API evalscript — NO dataMask, uses mean sample approach
+  // Statistical API — dataMask required, resx/resy in METERS
   const evalscript = `//VERSION=3
 function setup() {
   return {
-    input: [{ bands: ["B04", "B08", "B11"] }],
+    input: [{ bands: ["B04", "B08", "B11", "dataMask"] }],
     output: [
-      { id: "ndvi", bands: 1, sampleType: "FLOAT32" },
-      { id: "evi",  bands: 1, sampleType: "FLOAT32" },
-      { id: "ndwi", bands: 1, sampleType: "FLOAT32" }
+      { id: "ndvi",     bands: 1, sampleType: "FLOAT32" },
+      { id: "evi",      bands: 1, sampleType: "FLOAT32" },
+      { id: "ndwi",     bands: 1, sampleType: "FLOAT32" },
+      { id: "dataMask", bands: 1, sampleType: "UINT8" }
     ]
   };
 }
 function evaluatePixel(sample) {
   var ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04 + 0.0001);
-  var evi  = 2.5 * (sample.B08 - sample.B04) / (sample.B08 + 6 * sample.B04 - 7.5 * 0.0001 + 1);
+  var evi  = 2.5*(sample.B08-sample.B04)/(sample.B08+6*sample.B04-7.5*0.0001+1);
   var ndwi = (sample.B08 - sample.B11) / (sample.B08 + sample.B11 + 0.0001);
-  return { ndvi: [ndvi], evi: [evi], ndwi: [ndwi] };
+  return { ndvi: [ndvi], evi: [evi], ndwi: [ndwi], dataMask: [sample.dataMask] };
 }`;
 
   const payload = {
-    input:{
-      bounds:{geometry:polygon,properties:{crs:'http://www.opengis.net/def/crs/OGC/1.3/CRS84'}},
-      data:[{type:'sentinel-2-l2a',dataFilter:{timeRange:{from,to},maxCloudCoverage:60}}]
+    input: {
+      bounds: { geometry: polygon, properties: { crs: 'http://www.opengis.net/def/crs/OGC/1.3/CRS84' } },
+      data: [{ type: 'sentinel-2-l2a', dataFilter: { timeRange: { from, to }, maxCloudCoverage: 70 } }]
     },
-    aggregation:{timeRange:{from,to},aggregationInterval:{of:'P30D'},evalscript,resx:0.0001,resy:0.0001},
-    calculations:{default:{}}
+    aggregation: {
+      timeRange:           { from, to },
+      aggregationInterval: { of: 'P30D' },
+      evalscript,
+      resx: 10,
+      resy: 10
+    },
+    calculations: { default: {} }
   };
 
   try {
