@@ -2086,31 +2086,37 @@ async function getCopernicusToken() {
     }
   } catch(e) {}
 
-  // Try direct fetch — CDSE token endpoint CORS policy varies
+  // Route through Supabase Edge Function proxy to avoid CORS
+  // Proxy URL is derived from the Supabase project URL stored in DB config
+  const cfg = getDbConfig();
+  const proxyBase = cfg ? cfg.url + '/functions/v1/copernicus-proxy' : null;
+
+  if(!proxyBase) {
+    // No Supabase configured — show curl fallback
+    showCorsTokenHelper(clientId, clientSecret);
+    const el = document.getElementById('cop-api-status');
+    if(el) { el.textContent = 'Configure ⚙ Database (Supabase) first — needed as CORS proxy for Copernicus'; el.style.color = '#B8720A'; }
+    return null;
+  }
+
   try {
-    const resp = await fetch(CDSE_TOKEN_URL, {
-      method: 'POST', mode: 'cors',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `grant_type=client_credentials&client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}`
+    const resp = await fetch(proxyBase, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': cfg.key, 'Authorization': 'Bearer ' + cfg.key },
+      body: JSON.stringify({ action: 'get_token', clientId, clientSecret })
     });
-    if(resp.ok) {
-      const data = await resp.json();
-      copernicusToken = data.access_token;
-      tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
-      localStorage.setItem(COP_TOKEN_KEY, JSON.stringify({ token: copernicusToken, expiry: tokenExpiry }));
-      saveCopernicusCredentials();
-      return copernicusToken;
-    } else {
-      const err = await resp.json().catch(()=>({}));
-      throw new Error(`${resp.status} ${err.error_description || err.error || ''}`);
-    }
+    const data = await resp.json();
+    if(!resp.ok || data.error) throw new Error(data.error || 'Token request failed');
+    copernicusToken = data.access_token;
+    tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
+    localStorage.setItem(COP_TOKEN_KEY, JSON.stringify({ token: copernicusToken, expiry: tokenExpiry }));
+    saveCopernicusCredentials();
+    return copernicusToken;
   } catch(e) {
-    if(e.message.includes('Failed to fetch') || e.message.includes('NetworkError') || e.message.toLowerCase().includes('cors')) {
-      showCorsTokenHelper(clientId, clientSecret);
-    } else {
-      const el = document.getElementById('cop-api-status');
-      if(el) { el.textContent = '\u2717 Auth error: ' + e.message; el.style.color = '#C0392B'; }
-    }
+    const el = document.getElementById('cop-api-status');
+    if(el) { el.textContent = '\u2717 ' + e.message; el.style.color = '#C0392B'; }
+    // Fall back to curl helper
+    showCorsTokenHelper(clientId, clientSecret);
     return null;
   }
 }
@@ -2258,22 +2264,50 @@ function evaluatePixel(samples) {
   };
 
   try {
-    const resp = await fetch(STATS_URL, {
-      method:  'POST',
-      headers: {
-        'Authorization': 'Bearer ' + token,
-        'Content-Type':  'application/json',
-        'Accept':        'application/json',
-      },
-      body: JSON.stringify(payload)
-    });
+    // Route through Supabase proxy to avoid CORS
+    const cfg2 = getDbConfig();
+    const proxyUrl = cfg2 ? cfg2.url + '/functions/v1/copernicus-proxy' : null;
 
-    if(!resp.ok) {
-      const errText = await resp.text();
-      throw new Error(`Statistical API ${resp.status}: ${errText.slice(0, 200)}`);
+    let data;
+    if(proxyUrl) {
+      const resp = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': cfg2.key, 'Authorization': 'Bearer ' + cfg2.key },
+        body: JSON.stringify({ action: 'fetch_indices', token, lat, lng,
+          fromDate: fromDate + 'T00:00:00Z', toDate: toDate + 'T23:59:59Z' })
+      });
+      const result = await resp.json();
+      if(!resp.ok || result.error) throw new Error(result.error || 'Proxy error ' + resp.status);
+
+      // Proxy returns already-extracted values
+      const { ndvi, evi, ndwi, date: dateStr } = result;
+      if(ndvi !== null && ndvi !== undefined) {
+        setApiField('ndvi', Math.max(-1,Math.min(1,ndvi)).toFixed(3));
+        const stress = ndvi > 0.6 ? 'none' : ndvi > 0.45 ? 'low' : ndvi > 0.3 ? 'medium' : ndvi > 0.15 ? 'high' : 'severe';
+        setApiField('water_stress_class', stress);
+      }
+      if(evi  !== null && evi  !== undefined) setApiField('evi',  Math.max(-1,Math.min(1,evi)).toFixed(3));
+      if(ndwi !== null && ndwi !== undefined) setApiField('ndwi', Math.max(-1,Math.min(1,ndwi)).toFixed(3));
+      setApiField('meteo_source', 'copernicus');
+      const ndviStr = ndvi !== null ? ndvi.toFixed(3) : '—';
+      const eviStr  = evi  !== null ? evi.toFixed(3)  : '—';
+      const ndwiStr = ndwi !== null ? ndwi.toFixed(3) : '—';
+      statusEl.textContent = `\u2713 NDVI: ${ndviStr}  EVI: ${eviStr}  NDWI: ${ndwiStr}  (Sentinel-2${dateStr ? ', from ' + dateStr : ''})`;
+      statusEl.style.color = '#2B5F3F';
+      return; // skip the rest of the function
+    } else {
+      // No proxy — try direct (may fail with CORS)
+      const resp = await fetch(STATS_URL, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if(!resp.ok) {
+        const errText = await resp.text();
+        throw new Error(`Statistical API ${resp.status}: ${errText.slice(0, 200)}`);
+      }
+      data = await resp.json();
     }
-
-    const data = await resp.json();
 
     // Parse Statistical API response
     // Structure: { data: [ { interval: {...}, outputs: { ndvi: { bands: { B0: { stats: { mean, min, max } } } } } } ] }
