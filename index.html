@@ -1329,13 +1329,14 @@ function saveRecord() {
     }
   }
   const missing = [];
-  if(!soil.commune)   missing.push('Commune');
-  if(!soil.surveyor)  missing.push('Surveyor');
-  if(!soil.qttb_area) missing.push('QTTB Area / crop');
+  if(!soil.commune)   missing.push('Commune (click a location button or type it)');
+  if(!soil.qttb_area) missing.push('QTTB area/crop (select Korçë/Lushnje/Vlorë)');
   if(missing.length) {
-    showStatus('error', 'Please fill in: ' + missing.join(', '));
+    showStatus('error', 'Please fill in: ' + missing.join(' and '));
     return;
   }
+  // Surveyor is recommended but not blocking
+  if(!soil.surveyor) soil.surveyor = 'Field survey';
   const meteo = collectMeteoData();
   const record = {
     id: Date.now(),
@@ -1827,12 +1828,13 @@ function selectLocation(key) {
 
   updateProgress();
 
-  // Auto-trigger ASIG fetch after a short delay
+  // Auto-trigger ASIG fetch
   const asigStatus = document.getElementById('asig-status');
   if(asigStatus) {
-    asigStatus.textContent = 'Location set — click "Fill from ASIG" to load layer data';
-    asigStatus.style.color = '#2B5F3F';
+    asigStatus.textContent = '⟳ Loading ASIG data…';
+    asigStatus.style.color = '#B8720A';
   }
+  setTimeout(() => fetchASIG(), 600);
 }
 
 function searchCommune(val) {
@@ -1923,7 +1925,8 @@ async function fetchASIG() {
 
   // Create a small bbox around the point (±0.001° ≈ ±100m)
   const d = 0.001;
-  const bbox = `${lat-d},${lng-d},${lat+d},${lng+d},EPSG:4326`;
+  // WFS BBOX uses XY order: minX,minY,maxX,maxY = minLng,minLat,maxLng,maxLat
+  const bbox = `${lng-d},${lat-d},${lng+d},${lat+d},EPSG:4326`;
 
   // Query all 4 QTTB layers + ZRPP cadastre in parallel
   const queries = [
@@ -2002,18 +2005,37 @@ async function fetchASIG() {
   });
 
   if(!anyData) {
-    setAsigStatus('warn', 'No features at these coordinates. Check GPS or use HTTP server.');
+    // Check if all were rejected (CORS) vs genuinely no features
+    const rejected = results.filter(r => r.status === 'rejected');
+    const fulfilled = results.filter(r => r.status === 'fulfilled');
+    if(rejected.length === results.length) {
+      setAsigStatus('warn', 'CORS blocked — ASIG WFS requires HTTP. Data will be fetched when served locally.');
+    } else {
+      setAsigStatus('warn', `No QTTB features at ${lat.toFixed(4)}°N ${lng.toFixed(4)}°E — coordinates may be outside QTTB mapped area`);
+    }
     return;
   }
 
   if(filled.length === 0) {
-    setAsigStatus('ok', `Data found but fields already filled (${results.filter(r=>r.status==='fulfilled').length} layers hit)`);
+    setAsigStatus('ok', `✓ ASIG connected — ${results.filter(r=>r.status==='fulfilled' && r.value.features.length).length} layers with data. Fields already filled or no mapped attributes.`);
   } else {
-    setAsigStatus('ok', `${filled.length} field(s) filled from ASIG`);
-    const el = document.getElementById('asig-filled-fields');
+    setAsigStatus('ok', `✓ ${filled.length} field(s) auto-filled from ASIG`);
+  }
+  // Always show what ASIG returned in the filled panel
+  const el = document.getElementById('asig-filled-fields');
+  if(el) {
     el.style.display = 'block';
-    el.innerHTML = '<strong>Auto-filled from ASIG (green = API, white = manual):</strong><br>' +
-      filled.map(f => '· ' + f).join('<br>');
+    const allProps = [];
+    results.forEach(r => {
+      if(r.status === 'fulfilled' && r.value.features.length) {
+        const props = r.value.features[0].properties || {};
+        const nonNull = Object.entries(props).filter(([k,v]) => v !== null && v !== '');
+        if(nonNull.length) allProps.push(`<strong>${r.value.label}:</strong> ` + nonNull.map(([k,v]) => `${k}=${v}`).join(', '));
+      }
+    });
+    el.innerHTML = allProps.length
+      ? '<strong>ASIG data received:</strong><br>' + allProps.join('<br>') + (filled.length ? '<br><em>Green fields = auto-filled above</em>' : '')
+      : 'Connected but no attributes returned for this location.';
   }
 }
 
