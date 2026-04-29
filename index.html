@@ -445,7 +445,7 @@
           <!-- Custom commune search -->
           <input type="text" id="commune-search" placeholder="Or type any commune…"
             style="font-size:12px; padding:5px 10px; border:1px solid #D8D4CC; border-radius:20px; background:#fff; outline:none; min-width:160px;"
-            oninput="searchCommune(this.value)" list="commune-list">
+            oninput="searchCommune(this.value); if(this.value.trim()){document.getElementById('commune').value=this.value.trim();}" list="commune-list">
           <datalist id="commune-list">
             <option value="Fushë Krujë">
             <option value="Prezë">
@@ -1320,8 +1320,20 @@ function saveRecords(records) {
 
 function saveRecord() {
   const soil = collectSoilData();
-  if(!soil.commune || !soil.surveyor || !soil.qttb_area) {
-    showStatus('error', 'Please fill in Commune, Surveyor, and QTTB Area before saving.');
+  // Also accept value from commune-search if commune is empty
+  if(!soil.commune) {
+    const cs = document.getElementById('commune-search');
+    if(cs && cs.value.trim()) {
+      soil.commune = cs.value.trim();
+      document.getElementById('commune').value = soil.commune;
+    }
+  }
+  const missing = [];
+  if(!soil.commune)   missing.push('Commune');
+  if(!soil.surveyor)  missing.push('Surveyor');
+  if(!soil.qttb_area) missing.push('QTTB Area / crop');
+  if(missing.length) {
+    showStatus('error', 'Please fill in: ' + missing.join(', '));
     return;
   }
   const meteo = collectMeteoData();
@@ -1798,10 +1810,10 @@ function selectLocation(key) {
   // Fill commune and district
   setFieldHighlighted('commune', loc.commune);
 
-  // Fill QTTB area selector
+  // Fill QTTB area selector — always update when location selected
   if(loc.qttb_area) {
     const sel = document.getElementById('qttb_area');
-    if(sel && !sel.value) sel.value = loc.qttb_area;
+    if(sel) sel.value = loc.qttb_area;
   }
 
   // Update location status
@@ -2092,10 +2104,26 @@ async function getCopernicusToken() {
   const proxyBase = cfg ? cfg.url + '/functions/v1/copernicus-proxy' : null;
 
   if(!proxyBase) {
-    // No Supabase configured — show curl fallback
+    // No Supabase proxy — try direct call (works if CORS allows)
+    try {
+      const resp = await fetch(CDSE_TOKEN_URL, {
+        method: 'POST', mode: 'cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `grant_type=client_credentials&client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}`
+      });
+      if(resp.ok) {
+        const data = await resp.json();
+        copernicusToken = data.access_token;
+        tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
+        localStorage.setItem(COP_TOKEN_KEY, JSON.stringify({ token: copernicusToken, expiry: tokenExpiry }));
+        saveCopernicusCredentials();
+        return copernicusToken;
+      }
+    } catch(e2) { /* CORS blocked — fall through */ }
+    // Both failed — show curl fallback
     showCorsTokenHelper(clientId, clientSecret);
     const el = document.getElementById('cop-api-status');
-    if(el) { el.textContent = 'Configure ⚙ Database (Supabase) first — needed as CORS proxy for Copernicus'; el.style.color = '#B8720A'; }
+    if(el) { el.textContent = 'CORS blocked. Deploy Supabase Edge Function (copernicus-proxy) OR use the curl command below'; el.style.color = '#B8720A'; }
     return null;
   }
 
@@ -2105,8 +2133,15 @@ async function getCopernicusToken() {
       headers: { 'Content-Type': 'application/json', 'apikey': cfg.key, 'Authorization': 'Bearer ' + cfg.key },
       body: JSON.stringify({ action: 'get_token', clientId, clientSecret })
     });
+    if(!resp.ok && resp.status === 404) {
+      // Edge Function not deployed yet
+      const el = document.getElementById('cop-api-status');
+      if(el) { el.textContent = 'Edge Function not deployed — go to Supabase → Edge Functions → deploy copernicus-proxy'; el.style.color = '#B8720A'; }
+      showCorsTokenHelper(clientId, clientSecret);
+      return null;
+    }
     const data = await resp.json();
-    if(!resp.ok || data.error) throw new Error(data.error || 'Token request failed');
+    if(!resp.ok || data.error) throw new Error(data.error || 'Token request failed ' + resp.status);
     copernicusToken = data.access_token;
     tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
     localStorage.setItem(COP_TOKEN_KEY, JSON.stringify({ token: copernicusToken, expiry: tokenExpiry }));
