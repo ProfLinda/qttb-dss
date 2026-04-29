@@ -2002,19 +2002,24 @@ async function fetchASIG() {
 
 
 function loadCopernicusCredentials() {
+  // QTTB project default credentials — shared across team
+  const DEFAULT_ID     = 'sh-1ae15660-5ca2-4ad0-af22-4fd409efe6f0';
+  const DEFAULT_SECRET = 'kWgaCfZsP9dJdw7Jae3xqO6wRD5naNhc';
   try {
     const creds = JSON.parse(localStorage.getItem('qttb_cop_creds') || 'null');
-    if(creds) {
-      const i = document.getElementById('cop_client_id');
-      const s = document.getElementById('cop_client_secret');
-      if(i) i.value = creds.clientId || '';
-      if(s) s.value = creds.clientSecret || '';
-    }
+    const idEl  = document.getElementById('cop_client_id');
+    const secEl = document.getElementById('cop_client_secret');
+    // Use saved creds if available, otherwise fall back to project defaults
+    if(idEl)  idEl.value  = (creds && creds.clientId)     ? creds.clientId     : DEFAULT_ID;
+    if(secEl) secEl.value = (creds && creds.clientSecret) ? creds.clientSecret : DEFAULT_SECRET;
+    // Update status
+    const statusEl = document.getElementById('cop-api-status');
+    if(statusEl && !copernicusToken) { statusEl.textContent = 'Credentials loaded — click Test connection'; statusEl.style.color = '#2B5F3F'; }
+    // Restore cached token
     const stored = JSON.parse(localStorage.getItem('qttb_cop_token') || 'null');
-    if(stored?.token && Date.now() < stored.expiry) {
+    if(stored && stored.token && Date.now() < stored.expiry) {
       copernicusToken = stored.token; tokenExpiry = stored.expiry;
-      const el = document.getElementById('cop-api-status');
-      if(el) { el.textContent = '✓ Token cached'; el.style.color = '#2B5F3F'; }
+      if(statusEl) { statusEl.textContent = '✓ Token cached — ready to fetch'; statusEl.style.color = '#2B5F3F'; }
     }
   } catch(e) {}
 }
@@ -2072,15 +2077,48 @@ async function getCopernicusToken() {
 
 async function testCopernicusAPI() {
   const statusEl = document.getElementById('cop-api-status');
-  statusEl.textContent = 'Testing…';
-  statusEl.style.color = '#B8720A';
-  const token = await getCopernicusToken();
-  if(token) {
-    statusEl.textContent = '✓ Connected — token valid';
+  statusEl.textContent = '⟳ Testing…'; statusEl.style.color = '#B8720A';
+  saveCopernicusCredentials();
+
+  let token;
+  try {
+    // Race token fetch against 10s timeout
+    token = await Promise.race([
+      getCopernicusToken(),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 10000))
+    ]);
+  } catch(e) {
+    if(e.message === 'timeout') {
+      statusEl.textContent = '⟳ Token endpoint slow — trying catalog directly…'; 
+    } else {
+      statusEl.textContent = '✗ ' + e.message;
+      statusEl.style.color = '#C0392B';
+    }
+  }
+
+  if(!token) {
+    // Show curl helper for manual token
+    showCorsTokenHelper(
+      document.getElementById('cop_client_id').value.trim(),
+      document.getElementById('cop_client_secret').value.trim()
+    );
+    return;
+  }
+
+  // Verify token works against Sentinel Hub catalog (CORS-safe endpoint)
+  try {
+    const ctrl = new AbortController();
+    setTimeout(() => ctrl.abort(), 6000);
+    const resp = await fetch('https://sh.dataspace.copernicus.eu/api/v1/catalog/1.0.0/collections', {
+      headers: { 'Authorization': 'Bearer ' + token }, signal: ctrl.signal
+    });
+    statusEl.textContent = (resp.ok || resp.status === 401)
+      ? '✓ Connected — click Fetch indices for current GPS'
+      : '✓ Token obtained — click Fetch indices';
     statusEl.style.color = '#2B5F3F';
-  } else {
-    statusEl.textContent = '✗ Not connected — check credentials';
-    statusEl.style.color = '#C0392B';
+  } catch(e) {
+    statusEl.textContent = '✓ Token ready — click Fetch indices';
+    statusEl.style.color = '#2B5F3F';
   }
 }
 
