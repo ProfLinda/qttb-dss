@@ -351,7 +351,6 @@
     </div>
   </div>
   <div class="header-actions">
-    <button class="btn btn-ghost" onclick="showDbConfig()" id="db-btn" title="Configure Supabase database">⚙ Database</button>
     <label class="btn btn-ghost" style="cursor:pointer">
       Import JSON
       <input type="file" accept=".json" style="display:none" onchange="importJSON(this)">
@@ -359,45 +358,6 @@
     <button class="btn btn-ghost" onclick="loadRef133()">Load Ref.133 sample</button>
     <button class="btn btn-ghost" onclick="clearForm()">Clear form</button>
     <button class="btn btn-white" onclick="saveRecord()">Save record</button>
-  </div>
-
-  <!-- SUPABASE CONFIG MODAL -->
-  <div id="db-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
-    <div style="background:#fff; border-radius:12px; padding:24px; max-width:520px; width:90%; box-shadow:0 8px 40px rgba(0,0,0,0.2); font-family:'IBM Plex Sans',sans-serif;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-        <strong style="font-size:15px">Database connection — Supabase</strong>
-        <button onclick="closeDbConfig()" style="background:none; border:none; font-size:20px; cursor:pointer; color:#9A9890;">×</button>
-      </div>
-      <p style="font-size:12px; color:#6B6860; margin-bottom:14px; line-height:1.6">
-        Free PostgreSQL database. Register at <strong>app.supabase.com</strong>, create a project,
-        run <code style="background:#F5F3EE; padding:1px 5px; border-radius:3px;">db/schema.sql</code>,
-        then paste your credentials below.
-      </p>
-      <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
-        <div>
-          <label style="font-size:11px; color:#6B6860; display:block; margin-bottom:4px;">Project URL</label>
-          <input type="text" id="sb-url" placeholder="https://xxxxxxxxxxxx.supabase.co"
-            style="width:100%; font-size:13px; padding:8px 10px; border:1px solid #D8D4CC; border-radius:6px; box-sizing:border-box;">
-        </div>
-        <div>
-          <label style="font-size:11px; color:#6B6860; display:block; margin-bottom:4px;">Anon public key</label>
-          <input type="password" id="sb-key" placeholder="eyJhbGci..."
-            style="width:100%; font-size:13px; padding:8px 10px; border:1px solid #D8D4CC; border-radius:6px; box-sizing:border-box;">
-        </div>
-      </div>
-      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-        <button onclick="saveDbConfig()" style="background:#2B5F3F; color:#fff; border:none; padding:8px 18px; border-radius:6px; font-size:13px; cursor:pointer; font-family:inherit;">Save &amp; test</button>
-        <button onclick="closeDbConfig()" style="background:transparent; border:1px solid #D8D4CC; padding:8px 16px; border-radius:6px; font-size:13px; cursor:pointer; font-family:inherit;">Cancel</button>
-        <span id="db-test-status" style="font-size:11px; font-family:'IBM Plex Mono',monospace; color:#6B6860;"></span>
-      </div>
-      <div style="margin-top:14px; padding-top:14px; border-top:1px solid #EAE7E0; font-size:11px; color:#6B6860; line-height:1.7;">
-        <strong>Setup steps:</strong><br>
-        1. <a href="https://app.supabase.com" target="_blank" style="color:#2B5F3F">app.supabase.com</a> → New project → Frankfurt region<br>
-        2. SQL Editor → paste and run <code>db/schema.sql</code><br>
-        3. Settings → API → copy Project URL and anon key<br>
-        4. Records save to Supabase automatically once connected.
-      </div>
-    </div>
   </div>
 </div>
 
@@ -445,7 +405,7 @@
           <!-- Custom commune search -->
           <input type="text" id="commune-search" placeholder="Or type any commune…"
             style="font-size:12px; padding:5px 10px; border:1px solid #D8D4CC; border-radius:20px; background:#fff; outline:none; min-width:160px;"
-            oninput="searchCommune(this.value); if(this.value.trim()){document.getElementById('commune').value=this.value.trim();}" list="commune-list">
+            oninput="searchCommune(this.value); if(this.value.trim()) document.getElementById('commune').value=this.value.trim();" list="commune-list">
           <datalist id="commune-list">
             <option value="Fushë Krujë">
             <option value="Prezë">
@@ -1124,10 +1084,9 @@
   <div id="tab-records" style="display:none">
 
     <div class="export-panel">
-      <div class="card-title" style="border:none; padding:0; margin-bottom:8px;"><span class="card-title-dot"></span>Records</div>
-      <p style="font-size:13px; color:var(--text-muted); margin-bottom:10px">Local records (this browser) + Supabase database records when connected.</p>
+      <div class="card-title" style="border:none; padding:0; margin-bottom:8px;"><span class="card-title-dot"></span>Export all records</div>
+      <p style="font-size:13px; color:var(--text-muted);">Download all saved records as JSON (for DSS import) or CSV (for spreadsheet review).</p>
       <div class="export-btn-row">
-        <button class="btn btn-accent" onclick="loadFromSupabase()">↓ Load from database</button>
         <button class="btn btn-accent" onclick="exportJSON()">Download JSON</button>
         <button class="btn btn-outline" onclick="exportCSV()">Download CSV</button>
         <button class="btn btn-outline" onclick="exportHTML()">Download printable form</button>
@@ -1320,49 +1279,26 @@ function saveRecords(records) {
 
 function saveRecord() {
   const soil = collectSoilData();
-  // Also accept value from commune-search if commune is empty
   if(!soil.commune) {
     const cs = document.getElementById('commune-search');
-    if(cs && cs.value.trim()) {
-      soil.commune = cs.value.trim();
-      document.getElementById('commune').value = soil.commune;
-    }
+    if(cs && cs.value.trim()) { soil.commune = cs.value.trim(); document.getElementById('commune').value = soil.commune; }
   }
   const missing = [];
-  if(!soil.commune)   missing.push('Commune (click a location button or type it)');
-  if(!soil.qttb_area) missing.push('QTTB area/crop (select Korçë/Lushnje/Vlorë)');
-  if(missing.length) {
-    showStatus('error', 'Please fill in: ' + missing.join(' and '));
-    return;
-  }
-  // Surveyor is recommended but not blocking
+  if(!soil.commune)   missing.push('Commune (click a location button)');
+  if(!soil.qttb_area) missing.push('QTTB area (select Korçë / Lushnje / Vlorë)');
+  if(missing.length) { showStatus('error', 'Please fill in: ' + missing.join(' and ')); return; }
   if(!soil.surveyor) soil.surveyor = 'Field survey';
-  const meteo = collectMeteoData();
   const record = {
     id: Date.now(),
     saved_at: new Date().toISOString(),
     soil,
-    meteo,
+    meteo: collectMeteoData(),
   };
-  // 1. Always save to localStorage (works offline)
   const records = loadRecords();
   records.push(record);
   saveRecords(records);
   updateRecordCount();
-
-  // 2. Also save to Supabase if configured
-  const cfg = getDbConfig();
-  if(cfg) {
-    showStatus('success', `Saving to database…`);
-    saveToSupabase(soil, meteo).then(dbId => {
-      if(dbId) showStatus('success', `✓ Saved locally + database (DB id: ${dbId}) — ${soil.commune}, Ref: ${soil.ref_no || 'n/a'}`);
-      else showStatus('success', `Saved locally — ${soil.commune} (database error, check config)`);
-    }).catch(e => {
-      showStatus('warn', `Saved locally. Database error: ${e.message}`);
-    });
-  } else {
-    showStatus('success', `Saved locally: ${soil.commune} — ${soil.qttb_area} (Ref: ${soil.ref_no || 'n/a'}). Configure ⚙ Database to also save to Supabase.`);
-  }
+  showStatus('success', `Record saved: ${soil.commune} — ${soil.qttb_area} (Ref: ${soil.ref_no || 'n/a'})`);
 }
 
 function deleteRecord(id) {
@@ -1811,7 +1747,7 @@ function selectLocation(key) {
   // Fill commune and district
   setFieldHighlighted('commune', loc.commune);
 
-  // Fill QTTB area selector — always update when location selected
+  // Fill QTTB area selector
   if(loc.qttb_area) {
     const sel = document.getElementById('qttb_area');
     if(sel) sel.value = loc.qttb_area;
@@ -1828,13 +1764,10 @@ function selectLocation(key) {
 
   updateProgress();
 
-  // Auto-trigger ASIG fetch
+  // Auto-trigger ASIG fetch after a short delay
   const asigStatus = document.getElementById('asig-status');
-  if(asigStatus) {
-    asigStatus.textContent = '⟳ Loading ASIG data…';
-    asigStatus.style.color = '#B8720A';
-  }
-  setTimeout(() => fetchASIG(), 600);
+  if(asigStatus) { asigStatus.textContent = '⟳ Loading ASIG data…'; asigStatus.style.color = '#B8720A'; }
+  setTimeout(() => fetchASIG(), 800);
 }
 
 function searchCommune(val) {
@@ -1915,135 +1848,346 @@ const ASIG_FIELD_MAP = {
 async function fetchASIG() {
   const lat = parseFloat(document.getElementById('gps_n').value);
   const lng = parseFloat(document.getElementById('gps_e').value);
-
   if(!lat || !lng || isNaN(lat) || isNaN(lng)) {
-    setAsigStatus('error', 'Enter GPS coordinates first — click a location button above');
+    setAsigStatus('error', 'Enter GPS first — click a location button');
     return;
   }
-
   setAsigStatus('loading', `⟳ Querying ASIG for ${lat.toFixed(4)}°N ${lng.toFixed(4)}°E…`);
-
-  const d    = 0.002;
-  const bbox = `${lng-d},${lat-d},${lng+d},${lat+d},EPSG:4326`;
+  const d = 0.002;
+  const bbox = `${lng-d},${lat-d},${lng+d},${lat+d},EPSG:4326`; // WFS XY order
 
   const layers = [
-    { url: QTTB_OWS, layer: 'perdorimi_tokes_2020',      label: 'Land use 2020' },
-    { url: QTTB_OWS, layer: 'pedologjia_23042024',       label: 'Pedology' },
-    { url: QTTB_OWS, layer: 'Tipet_e_tokes_07082019',    label: 'Soil types' },
-    { url: QTTB_OWS, layer: 'Pershtatshmeria_07082019',  label: 'Suitability' },
+    { url: QTTB_OWS, layer: 'perdorimi_tokes_2020',    label: 'Land use 2020' },
+    { url: QTTB_OWS, layer: 'pedologjia_23042024',     label: 'Pedology' },
+    { url: QTTB_OWS, layer: 'Tipet_e_tokes_07082019',  label: 'Soil types' },
+    { url: QTTB_OWS, layer: 'Pershtatshmeria_07082019', label: 'Suitability' },
     { url: ZRPP_OWS, layer: 'parcela_kadastrale_qkd_042025', label: 'Cadastre' },
   ];
 
-  // Helper: fetch with 6s timeout
   async function fetchWithTimeout(url, opts={}) {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 6000);
-    try {
-      const r = await fetch(url, { ...opts, signal: ctrl.signal });
-      clearTimeout(timer);
-      return r;
-    } catch(e) {
-      clearTimeout(timer);
-      throw e.name === 'AbortError' ? new Error('Timeout (CORS blocked)') : e;
-    }
+    const t = setTimeout(() => ctrl.abort(), 7000);
+    try { const r = await fetch(url, {...opts, signal:ctrl.signal}); clearTimeout(t); return r; }
+    catch(e) { clearTimeout(t); throw e.name==='AbortError' ? new Error('Timeout') : e; }
   }
 
-  // Try Supabase proxy first
   const cfg = getDbConfig();
-  const proxyBase = cfg ? `${cfg.url}/functions/v1/asig-proxy` : null;
+  const proxy = cfg ? `${cfg.url}/functions/v1/asig-proxy` : null;
 
-  // Fetch one layer via proxy or direct
   async function fetchLayer(q) {
     const wfsUrl = `${q.url}?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=${encodeURIComponent(q.layer)}&SRSNAME=EPSG:4326&OUTPUTFORMAT=application/json&COUNT=1&BBOX=${encodeURIComponent(bbox)}`;
-
-    if(proxyBase) {
-      const resp = await fetchWithTimeout(proxyBase, {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json','apikey':cfg.key,'Authorization':'Bearer '+cfg.key },
-        body: JSON.stringify({ url: wfsUrl })
-      });
-      if(!resp.ok) throw new Error('Proxy HTTP ' + resp.status);
-      return await resp.json();
-    } else {
-      const resp = await fetchWithTimeout(wfsUrl, { mode:'cors' });
-      if(!resp.ok) throw new Error('HTTP ' + resp.status);
-      return await resp.json();
+    if(proxy) {
+      const r = await fetchWithTimeout(proxy, { method:'POST', headers:{'Content-Type':'application/json','apikey':cfg.key,'Authorization':'Bearer '+cfg.key}, body:JSON.stringify({url:wfsUrl}) });
+      if(!r.ok) throw new Error('Proxy ' + r.status);
+      return r.json();
     }
+    const r = await fetchWithTimeout(wfsUrl, {mode:'cors'});
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
   }
 
-  const results = await Promise.allSettled(layers.map(q =>
-    fetchLayer(q).then(data => ({ label:q.label, layer:q.layer, features:data.features||[] }))
-  ));
+  const results = await Promise.allSettled(layers.map(q => fetchLayer(q).then(d => ({label:q.label, layer:q.layer, features:d.features||[]}))));
 
-  const fulfilled  = results.filter(r => r.status==='fulfilled');
-  const rejected   = results.filter(r => r.status==='rejected');
-  const withData   = fulfilled.filter(r => r.value.features.length > 0);
-  const allBlocked = rejected.length === results.length &&
-                     rejected.every(r => r.reason?.message?.includes('Timeout') || r.reason?.message?.includes('fetch'));
+  const withData   = results.filter(r => r.status==='fulfilled' && r.value.features.length);
+  const allFailed  = results.every(r => r.status==='rejected');
+  const el         = document.getElementById('asig-filled-fields');
 
-  // Build debug panel
-  const el = document.getElementById('asig-filled-fields');
   if(el) {
     el.style.display = 'block';
-    if(allBlocked) {
-      el.innerHTML = `<strong style="color:#B8720A">ASIG WFS is CORS-blocked from GitHub Pages</strong><br>
-        <span style="font-size:11px">To fix: deploy the <strong>asig-proxy</strong> Edge Function in Supabase → Edge Functions, same way as copernicus-proxy. Or open these URLs manually to read values:</span><br>` +
+    if(allFailed) {
+      const isTimeout = results.some(r => r.reason?.message?.includes('Timeout'));
+      el.innerHTML = `<strong style="color:#B8720A">${isTimeout ? 'ASIG CORS blocked — deploy asig-proxy Edge Function in Supabase' : 'ASIG connection failed'}</strong><br>
+        <span style="font-size:11px">Open these directly in your browser to read values manually:</span><br>` +
         layers.map(q => {
           const url = `${q.url}?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=${q.layer}&SRSNAME=EPSG:4326&OUTPUTFORMAT=application/json&COUNT=1&BBOX=${bbox}`;
-          return `<a href="${url}" target="_blank" style="font-size:10px;color:#2B5F3F;display:block;margin-top:3px">↗ ${q.label}</a>`;
+          return `<a href="${url}" target="_blank" style="font-size:10px;color:#2B5F3F;display:block;margin-top:2px">↗ ${q.label}</a>`;
         }).join('');
-    } else {
-      el.innerHTML = withData.length ? '' : '<span style="color:#B8720A">No features found at this location.</span>';
-      withData.forEach(r => {
-        const props = r.value.features[0].properties || {};
-        const nonNull = Object.entries(props).filter(([k,v]) => v!==null && v!=='' && String(v)!=='null');
-        el.innerHTML += `<div style="margin-top:6px;padding:6px;background:#fff;border-radius:4px;border:1px solid #b0d9be">
-          <strong>${r.label}:</strong><br>` +
-          nonNull.map(([k,v]) => `<span style="color:#6B6860;font-size:10px">${k}</span>: <strong style="font-size:11px">${v}</strong>`).join(' &nbsp;·&nbsp; ') +
-          '</div>';
-      });
+      setAsigStatus('warn', isTimeout ? 'CORS blocked — deploy asig-proxy in Supabase Edge Functions' : 'Connection failed — check network');
+      return;
     }
+    el.innerHTML = '';
+    withData.forEach(r => {
+      const props = r.value.features[0].properties || {};
+      const nonNull = Object.entries(props).filter(([k,v]) => v!==null && v!=='' && String(v)!=='null');
+      el.innerHTML += `<div style="margin-top:6px;padding:6px;background:#fff;border-radius:4px;border:1px solid #b0d9be"><strong>${r.value.label}:</strong> ` +
+        nonNull.map(([k,v]) => `<span style="font-size:10px;color:#6B6860">${k}</span>: <strong>${v}</strong>`).join(' · ') + '</div>';
+    });
   }
 
-  if(allBlocked) {
-    setAsigStatus('warn', 'CORS blocked — deploy asig-proxy Edge Function in Supabase to fix');
-    return;
-  }
-
-  // Fill form fields from returned data
   const filled = [];
   withData.forEach(r => {
     const props = r.value.features[0].properties || {};
     Object.entries(props).forEach(([key, val]) => {
-      if(val===null || val==='' || String(val)==='null') return;
-      const lower = key.toLowerCase();
+      if(!val || String(val)==='null') return;
+      const k = key.toLowerCase();
       const target =
-        (['perdorimi_tokes','klasa','lloji','tipi_tokes','mbulesa'].some(k=>lower.includes(k))) ? 'land_cover_class' :
-        (['pedologjia','tipi','wrb','soil'].some(k=>lower.includes(k)))                         ? 'soil_type' :
-        (['pershtats','suitab'].some(k=>lower.includes(k)))                                     ? 'flooding_info' :
-        lower.includes('nr_parc')  ? 'ref_no'        :
-        lower.includes('siperfaqja') || lower.includes('area') ? null :
-        lower.includes('pjerr') || lower.includes('slope') ? 'slope_pct' :
-        lower.includes('kullim') || lower.includes('drain') ? 'drainage_class' :
-        lower.includes('emri_zone') || lower.includes('komun') ? 'commune' : null;
-
+        ['perdorimi','klasa','lloji','mbulesa','land_use'].some(x=>k.includes(x)) ? 'land_cover_class' :
+        ['pedologji','tipi_toke','wrb','soil'].some(x=>k.includes(x))             ? 'soil_type' :
+        ['pershtats','suitab'].some(x=>k.includes(x))                             ? 'flooding_info' :
+        k.includes('nr_parc')   ? 'ref_no' :
+        k.includes('siperfaqja')? null :
+        k.includes('pjerr')     ? 'slope_pct' :
+        k.includes('kullim')    ? 'drainage_class' :
+        ['emri_zone','komun','bashki'].some(x=>k.includes(x)) ? 'commune' : null;
       if(!target) return;
-      const formEl = document.getElementById(target);
-      if(formEl && !formEl.value) {
-        formEl.value = String(val);
-        formEl.style.borderColor = '#2B5F3F';
-        formEl.style.background  = '#E8F2EC';
-        filled.push(`${target} = "${val}"`);
-        updateProgress();
+      const el2 = document.getElementById(target);
+      if(el2 && !el2.value) {
+        el2.value = String(val); el2.style.borderColor='#2B5F3F'; el2.style.background='#E8F2EC';
+        filled.push(`${target}="${val}"`); updateProgress();
       }
     });
   });
 
-  setAsigStatus('ok',
-    withData.length
-      ? `✓ ${withData.length} layer(s) returned data${filled.length ? ` · ${filled.length} field(s) filled` : ' (see raw values above)'}`
-      : 'Connected but no features at this coordinate'
-  );
+  setAsigStatus('ok', withData.length
+    ? `✓ ${withData.length} layer(s) returned data${filled.length ? ` · ${filled.length} field(s) filled` : ' — see raw values above'}`
+    : 'No QTTB features at this coordinate');
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// COPERNICUS DATA SPACE API INTEGRATION
+// Endpoint: https://sh.dataspace.copernicus.eu/api/v1/process
+// Auth: OAuth2 via https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token
+// Free tier: 30,000 processing units/month — sufficient for field surveys
+// Register: https://dataspace.copernicus.eu → Create account → Dashboard → OAuth clients
+// ═══════════════════════════════════════════════════════════════════════════
+
+const CDSE_TOKEN_URL = 'https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token';
+const CDSE_PROCESS_URL = 'https://sh.dataspace.copernicus.eu/api/v1/process';
+
+let copernicusToken = null;
+let tokenExpiry = 0;
+
+async function getCopernicusToken() {
+  const clientId = document.getElementById('cop_client_id').value.trim();
+  const clientSecret = document.getElementById('cop_client_secret').value.trim();
+  if(!clientId || !clientSecret) return null;
+
+  if(copernicusToken && Date.now() < tokenExpiry) return copernicusToken;
+
+  try {
+    const resp = await fetch(CDSE_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: clientId,
+        client_secret: clientSecret,
+      })
+    });
+    if(!resp.ok) throw new Error('Auth failed: ' + resp.status);
+    const data = await resp.json();
+    copernicusToken = data.access_token;
+    tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
+    return copernicusToken;
+  } catch(e) {
+    return null;
+  }
+}
+
+async function testCopernicusAPI() {
+  const statusEl = document.getElementById('cop-api-status');
+  statusEl.textContent = 'Testing…';
+  statusEl.style.color = '#B8720A';
+  const token = await getCopernicusToken();
+  if(token) {
+    statusEl.textContent = '✓ Connected — token valid';
+    statusEl.style.color = '#2B5F3F';
+  } else {
+    statusEl.textContent = '✗ Not connected — check credentials';
+    statusEl.style.color = '#C0392B';
+  }
+}
+
+function updateCopernicusStatus() {
+  const hasId = document.getElementById('cop_client_id').value.trim();
+  const hasSecret = document.getElementById('cop_client_secret').value.trim();
+  const el = document.getElementById('cop-api-status');
+  if(hasId && hasSecret) {
+    el.textContent = 'Credentials entered — click Test';
+    el.style.color = '#B8720A';
+  } else {
+    el.textContent = 'Not configured';
+    el.style.color = '#6B6860';
+  }
+}
+
+async function fetchCopernicus() {
+  const lat = parseFloat(document.getElementById('gps_n').value);
+  const lng = parseFloat(document.getElementById('gps_e').value);
+  const statusEl = document.getElementById('copernicus-status');
+
+  if(!lat || !lng || isNaN(lat) || isNaN(lng)) {
+    statusEl.textContent = 'Enter GPS first';
+    statusEl.style.color = '#C0392B';
+    return;
+  }
+
+  statusEl.textContent = 'Fetching…';
+  statusEl.style.color = '#B8720A';
+
+  const token = await getCopernicusToken();
+
+  if(!token) {
+    // No API key — use open WMS to at least get a tile and estimate NDVI visually
+    // Fall back to showing the open Copernicus Land Service soil moisture product
+    statusEl.textContent = 'No API key — enter credentials above';
+    statusEl.style.color = '#C0392B';
+    // Still try the open Copernicus Global Land Service for soil moisture
+    await fetchOpenCopernicusProducts(lat, lng, statusEl);
+    return;
+  }
+
+  // With API key: fetch NDVI, EVI, soil moisture for a 0.01°×0.01° box around point
+  const d = 0.005;
+  const bbox = [lng-d, lat-d, lng+d, lat+d];
+  const today = new Date();
+  const toDate = today.toISOString().slice(0,10);
+  const fromDate = new Date(today - 30*24*3600*1000).toISOString().slice(0,10);
+
+  const evalscript_ndvi = `//VERSION=3
+function setup() { return { input: ['B04','B08','B11','dataMask'], output: { bands: 4 } }; }
+function evaluatePixel(s) {
+  const ndvi = (s.B08-s.B04)/(s.B08+s.B04);
+  const evi  = 2.5*(s.B08-s.B04)/(s.B08+6*s.B04-7.5*0.0001+1);
+  const ndwi = (s.B08-s.B11)/(s.B08+s.B11);
+  return [ndvi, evi, ndwi, s.dataMask[0]];
+}`;
+
+  try {
+    const resp = await fetch(CDSE_PROCESS_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        input: {
+          bounds: { bbox, properties: { crs: 'http://www.opengis.net/def/crs/OGC/1.3/CRS84' } },
+          data: [{ type: 'sentinel-2-l2a', dataFilter: {
+            timeRange: { from: fromDate + 'T00:00:00Z', to: toDate + 'T23:59:59Z' },
+            maxCloudCoverage: 30,
+          }}]
+        },
+        evalscript: evalscript_ndvi,
+        output: {
+          width: 1, height: 1,
+          responses: [{ identifier: 'default', format: { type: 'application/json' } }]
+        }
+      })
+    });
+
+    if(!resp.ok) throw new Error('Process API: ' + resp.status);
+    const data = await resp.json();
+
+    // Extract mean values from the single-pixel response
+    if(data && data.data && data.data.length) {
+      const vals = data.data[0].stats || data.data[0];
+      const ndvi = vals.mean ? vals.mean[0] : (Array.isArray(vals) ? vals[0] : null);
+      const evi  = vals.mean ? vals.mean[1] : (Array.isArray(vals) ? vals[1] : null);
+      const ndwi = vals.mean ? vals.mean[2] : (Array.isArray(vals) ? vals[2] : null);
+
+      if(ndvi !== null) { setApiField('ndvi', ndvi.toFixed(3)); }
+      if(evi  !== null) { setApiField('evi',  evi.toFixed(3)); }
+      if(ndwi !== null) { setApiField('ndwi', ndwi.toFixed(3)); }
+
+      // Derive water stress class from NDVI
+      const stressClass = ndvi > 0.6 ? 'none' : ndvi > 0.45 ? 'low' : ndvi > 0.3 ? 'medium' : ndvi > 0.15 ? 'high' : 'severe';
+      setApiField('water_stress_class', stressClass);
+
+      statusEl.textContent = `✓ NDVI:${ndvi ? ndvi.toFixed(2) : '—'} EVI:${evi ? evi.toFixed(2) : '—'} NDWI:${ndwi ? ndwi.toFixed(2) : '—'} (S-2, last 30d)`;
+      statusEl.style.color = '#2B5F3F';
+      setApiField('meteo_source', 'copernicus');
+    } else {
+      statusEl.textContent = 'No Sentinel-2 data in last 30 days (cloud cover?)';
+      statusEl.style.color = '#B8720A';
+    }
+
+    // Also fetch Sentinel-1 soil moisture (SAR backscatter proxy)
+    await fetchSentinel1SoilMoisture(lat, lng, bbox, token);
+
+  } catch(e) {
+    statusEl.textContent = 'Error: ' + e.message;
+    statusEl.style.color = '#C0392B';
+  }
+}
+
+async function fetchSentinel1SoilMoisture(lat, lng, bbox, token) {
+  const evalscript_s1 = `//VERSION=3
+function setup() { return { input: ['VV','VH','dataMask'], output: { bands: 3 } }; }
+function evaluatePixel(s) {
+  const sm_proxy = Math.max(0, Math.min(1, (s.VV + 30) / 30));
+  return [s.VV, s.VH, sm_proxy];
+}`;
+  const today = new Date(), toDate = today.toISOString().slice(0,10);
+  const fromDate = new Date(today - 15*24*3600*1000).toISOString().slice(0,10);
+  try {
+    const resp = await fetch(CDSE_PROCESS_URL, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({
+        input: {
+          bounds: { bbox, properties: { crs: 'http://www.opengis.net/def/crs/OGC/1.3/CRS84' } },
+          data: [{ type: 'sentinel-1-grd', dataFilter: {
+            timeRange: { from: fromDate + 'T00:00:00Z', to: toDate + 'T23:59:59Z' },
+            acquisitionMode: 'IW', polarization: 'DV',
+          }}]
+        },
+        evalscript: evalscript_s1,
+        output: { width: 1, height: 1, responses: [{ identifier: 'default', format: { type: 'application/json' } }] }
+      })
+    });
+    if(!resp.ok) return;
+    const data = await resp.json();
+    if(data && data.data && data.data.length) {
+      const sm_proxy = data.data[0].stats ? data.data[0].stats.mean[2] : null;
+      if(sm_proxy !== null) {
+        setApiField('sm_index', sm_proxy.toFixed(3));
+        // Rough conversion: S-1 backscatter proxy to volumetric moisture
+        const sm_vol = Math.round(sm_proxy * 45);
+        setApiField('sm_10', sm_vol);
+      }
+    }
+  } catch(e) { /* silent — S-1 is bonus data */ }
+}
+
+async function fetchOpenCopernicusProducts(lat, lng, statusEl) {
+  // Without API key: use the Copernicus Global Land Service open REST API
+  // for soil moisture index (SSM) — free, no auth needed
+  const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  const url = `https://land.copernicus.eu/api/v1/products/SSM/point?lat=${lat}&lon=${lng}&date=${dateStr}`;
+  try {
+    const resp = await fetch(url, { mode: 'cors' });
+    if(!resp.ok) throw new Error('No open data');
+    const data = await resp.json();
+    if(data.value !== undefined) {
+      setApiField('sm_index', parseFloat(data.value).toFixed(3));
+      statusEl.textContent = `SM index: ${data.value} (Copernicus GLS, no key needed)`;
+      statusEl.style.color = '#2B5F3F';
+    }
+  } catch {
+    statusEl.textContent = 'Add Copernicus credentials above for NDVI/SM data';
+    statusEl.style.color = '#6B6860';
+  }
+}
+
+// Helper: set a field value and mark it as API-sourced (green border)
+function setApiField(id, val) {
+  const el = document.getElementById(id);
+  if(!el || el.value) return; // don't overwrite manually entered data
+  if(el.tagName === 'SELECT') {
+    for(const opt of el.options) {
+      if(opt.value === String(val) || opt.text.startsWith(String(val))) {
+        el.value = opt.value; break;
+      }
+    }
+  } else {
+    el.value = val;
+  }
+  el.style.borderColor = '#2B5F3F';
+  el.style.background = '#E8F2EC';
+  updateProgress();
 }
 
 
@@ -2051,22 +2195,482 @@ function loadCopernicusCredentials() {
   try {
     const creds = JSON.parse(localStorage.getItem('qttb_cop_creds') || 'null');
     if(creds) {
-      const idEl = document.getElementById('cop_client_id');
-      const secEl = document.getElementById('cop_client_secret');
-      if(idEl)  idEl.value  = creds.clientId     || '';
-      if(secEl) secEl.value = creds.clientSecret  || '';
+      const i = document.getElementById('cop_client_id');
+      const s = document.getElementById('cop_client_secret');
+      if(i) i.value = creds.clientId || '';
+      if(s) s.value = creds.clientSecret || '';
     }
     const stored = JSON.parse(localStorage.getItem('qttb_cop_token') || 'null');
-    if(stored && stored.token && Date.now() < stored.expiry) {
-      copernicusToken = stored.token;
-      tokenExpiry     = stored.expiry;
+    if(stored?.token && Date.now() < stored.expiry) {
+      copernicusToken = stored.token; tokenExpiry = stored.expiry;
       const el = document.getElementById('cop-api-status');
-      if(el) { el.textContent = '✓ Token cached — ready to fetch'; el.style.color = '#2B5F3F'; }
+      if(el) { el.textContent = '✓ Token cached'; el.style.color = '#2B5F3F'; }
     }
   } catch(e) {}
 }
 
-loadCopernicusCredentials();
+function setAsigStatus(type, msg) {
+  const el = document.getElementById('asig-status');
+  const colors = { loading:'#B8720A', ok:'#2B5F3F', warn:'#B8720A', error:'#C0392B' };
+  el.textContent = msg;
+  el.style.color = colors[type] || '#6B6860';
+}
+
+function clearApiStatus() {
+  document.getElementById('asig-status').textContent = '';
+  const el = document.getElementById('asig-filled-fields');
+  if(el) el.style.display = 'none';
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// COPERNICUS DATA SPACE API INTEGRATION
+// Endpoint: https://sh.dataspace.copernicus.eu/api/v1/process
+// Auth: OAuth2 via https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token
+// Free tier: 30,000 processing units/month — sufficient for field surveys
+// Register: https://dataspace.copernicus.eu → Create account → Dashboard → OAuth clients
+// ═══════════════════════════════════════════════════════════════════════════
+
+
+
+async function getCopernicusToken() {
+  const clientId = document.getElementById('cop_client_id').value.trim();
+  const clientSecret = document.getElementById('cop_client_secret').value.trim();
+  if(!clientId || !clientSecret) return null;
+
+  if(copernicusToken && Date.now() < tokenExpiry) return copernicusToken;
+
+  try {
+    const resp = await fetch(CDSE_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: clientId,
+        client_secret: clientSecret,
+      })
+    });
+    if(!resp.ok) throw new Error('Auth failed: ' + resp.status);
+    const data = await resp.json();
+    copernicusToken = data.access_token;
+    tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
+    return copernicusToken;
+  } catch(e) {
+    return null;
+  }
+}
+
+async function testCopernicusAPI() {
+  const statusEl = document.getElementById('cop-api-status');
+  statusEl.textContent = 'Testing…';
+  statusEl.style.color = '#B8720A';
+  const token = await getCopernicusToken();
+  if(token) {
+    statusEl.textContent = '✓ Connected — token valid';
+    statusEl.style.color = '#2B5F3F';
+  } else {
+    statusEl.textContent = '✗ Not connected — check credentials';
+    statusEl.style.color = '#C0392B';
+  }
+}
+
+function updateCopernicusStatus() {
+  const hasId = document.getElementById('cop_client_id').value.trim();
+  const hasSecret = document.getElementById('cop_client_secret').value.trim();
+  const el = document.getElementById('cop-api-status');
+  if(hasId && hasSecret) {
+    el.textContent = 'Credentials entered — click Test';
+    el.style.color = '#B8720A';
+  } else {
+    el.textContent = 'Not configured';
+    el.style.color = '#6B6860';
+  }
+}
+
+async function fetchCopernicus() {
+  const lat = parseFloat(document.getElementById('gps_n').value);
+  const lng = parseFloat(document.getElementById('gps_e').value);
+  const statusEl = document.getElementById('copernicus-status');
+
+  if(!lat || !lng || isNaN(lat) || isNaN(lng)) {
+    statusEl.textContent = 'Enter GPS first';
+    statusEl.style.color = '#C0392B';
+    return;
+  }
+
+  statusEl.textContent = 'Fetching…';
+  statusEl.style.color = '#B8720A';
+
+  const token = await getCopernicusToken();
+
+  if(!token) {
+    // No API key — use open WMS to at least get a tile and estimate NDVI visually
+    // Fall back to showing the open Copernicus Land Service soil moisture product
+    statusEl.textContent = 'No API key — enter credentials above';
+    statusEl.style.color = '#C0392B';
+    // Still try the open Copernicus Global Land Service for soil moisture
+    await fetchOpenCopernicusProducts(lat, lng, statusEl);
+    return;
+  }
+
+  // With API key: fetch NDVI, EVI, soil moisture for a 0.01°×0.01° box around point
+  const d = 0.005;
+  const bbox = [lng-d, lat-d, lng+d, lat+d];
+  const today = new Date();
+  const toDate = today.toISOString().slice(0,10);
+  const fromDate = new Date(today - 30*24*3600*1000).toISOString().slice(0,10);
+
+  const evalscript_ndvi = `//VERSION=3
+function setup() { return { input: ['B04','B08','B11','dataMask'], output: { bands: 4 } }; }
+function evaluatePixel(s) {
+  const ndvi = (s.B08-s.B04)/(s.B08+s.B04);
+  const evi  = 2.5*(s.B08-s.B04)/(s.B08+6*s.B04-7.5*0.0001+1);
+  const ndwi = (s.B08-s.B11)/(s.B08+s.B11);
+  return [ndvi, evi, ndwi, s.dataMask[0]];
+}`;
+
+  try {
+    const resp = await fetch(CDSE_PROCESS_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        input: {
+          bounds: { bbox, properties: { crs: 'http://www.opengis.net/def/crs/OGC/1.3/CRS84' } },
+          data: [{ type: 'sentinel-2-l2a', dataFilter: {
+            timeRange: { from: fromDate + 'T00:00:00Z', to: toDate + 'T23:59:59Z' },
+            maxCloudCoverage: 30,
+          }}]
+        },
+        evalscript: evalscript_ndvi,
+        output: {
+          width: 1, height: 1,
+          responses: [{ identifier: 'default', format: { type: 'application/json' } }]
+        }
+      })
+    });
+
+    if(!resp.ok) throw new Error('Process API: ' + resp.status);
+    const data = await resp.json();
+
+    // Extract mean values from the single-pixel response
+    if(data && data.data && data.data.length) {
+      const vals = data.data[0].stats || data.data[0];
+      const ndvi = vals.mean ? vals.mean[0] : (Array.isArray(vals) ? vals[0] : null);
+      const evi  = vals.mean ? vals.mean[1] : (Array.isArray(vals) ? vals[1] : null);
+      const ndwi = vals.mean ? vals.mean[2] : (Array.isArray(vals) ? vals[2] : null);
+
+      if(ndvi !== null) { setApiField('ndvi', ndvi.toFixed(3)); }
+      if(evi  !== null) { setApiField('evi',  evi.toFixed(3)); }
+      if(ndwi !== null) { setApiField('ndwi', ndwi.toFixed(3)); }
+
+      // Derive water stress class from NDVI
+      const stressClass = ndvi > 0.6 ? 'none' : ndvi > 0.45 ? 'low' : ndvi > 0.3 ? 'medium' : ndvi > 0.15 ? 'high' : 'severe';
+      setApiField('water_stress_class', stressClass);
+
+      statusEl.textContent = `✓ NDVI:${ndvi ? ndvi.toFixed(2) : '—'} EVI:${evi ? evi.toFixed(2) : '—'} NDWI:${ndwi ? ndwi.toFixed(2) : '—'} (S-2, last 30d)`;
+      statusEl.style.color = '#2B5F3F';
+      setApiField('meteo_source', 'copernicus');
+    } else {
+      statusEl.textContent = 'No Sentinel-2 data in last 30 days (cloud cover?)';
+      statusEl.style.color = '#B8720A';
+    }
+
+    // Also fetch Sentinel-1 soil moisture (SAR backscatter proxy)
+    await fetchSentinel1SoilMoisture(lat, lng, bbox, token);
+
+  } catch(e) {
+    statusEl.textContent = 'Error: ' + e.message;
+    statusEl.style.color = '#C0392B';
+  }
+}
+
+async function fetchSentinel1SoilMoisture(lat, lng, bbox, token) {
+  const evalscript_s1 = `//VERSION=3
+function setup() { return { input: ['VV','VH','dataMask'], output: { bands: 3 } }; }
+function evaluatePixel(s) {
+  const sm_proxy = Math.max(0, Math.min(1, (s.VV + 30) / 30));
+  return [s.VV, s.VH, sm_proxy];
+}`;
+  const today = new Date(), toDate = today.toISOString().slice(0,10);
+  const fromDate = new Date(today - 15*24*3600*1000).toISOString().slice(0,10);
+  try {
+    const resp = await fetch(CDSE_PROCESS_URL, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({
+        input: {
+          bounds: { bbox, properties: { crs: 'http://www.opengis.net/def/crs/OGC/1.3/CRS84' } },
+          data: [{ type: 'sentinel-1-grd', dataFilter: {
+            timeRange: { from: fromDate + 'T00:00:00Z', to: toDate + 'T23:59:59Z' },
+            acquisitionMode: 'IW', polarization: 'DV',
+          }}]
+        },
+        evalscript: evalscript_s1,
+        output: { width: 1, height: 1, responses: [{ identifier: 'default', format: { type: 'application/json' } }] }
+      })
+    });
+    if(!resp.ok) return;
+    const data = await resp.json();
+    if(data && data.data && data.data.length) {
+      const sm_proxy = data.data[0].stats ? data.data[0].stats.mean[2] : null;
+      if(sm_proxy !== null) {
+        setApiField('sm_index', sm_proxy.toFixed(3));
+        // Rough conversion: S-1 backscatter proxy to volumetric moisture
+        const sm_vol = Math.round(sm_proxy * 45);
+        setApiField('sm_10', sm_vol);
+      }
+    }
+  } catch(e) { /* silent — S-1 is bonus data */ }
+}
+
+async function fetchOpenCopernicusProducts(lat, lng, statusEl) {
+  // Without API key: use the Copernicus Global Land Service open REST API
+  // for soil moisture index (SSM) — free, no auth needed
+  const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  const url = `https://land.copernicus.eu/api/v1/products/SSM/point?lat=${lat}&lon=${lng}&date=${dateStr}`;
+  try {
+    const resp = await fetch(url, { mode: 'cors' });
+    if(!resp.ok) throw new Error('No open data');
+    const data = await resp.json();
+    if(data.value !== undefined) {
+      setApiField('sm_index', parseFloat(data.value).toFixed(3));
+      statusEl.textContent = `SM index: ${data.value} (Copernicus GLS, no key needed)`;
+      statusEl.style.color = '#2B5F3F';
+    }
+  } catch {
+    statusEl.textContent = 'Add Copernicus credentials above for NDVI/SM data';
+    statusEl.style.color = '#6B6860';
+  }
+}
+
+// Helper: set a field value and mark it as API-sourced (green border)
+function setApiField(id, val) {
+  const el = document.getElementById(id);
+  if(!el || el.value) return; // don't overwrite manually entered data
+  if(el.tagName === 'SELECT') {
+    for(const opt of el.options) {
+      if(opt.value === String(val) || opt.text.startsWith(String(val))) {
+        el.value = opt.value; break;
+      }
+    }
+  } else {
+    el.value = val;
+  }
+  el.style.borderColor = '#2B5F3F';
+  el.style.background = '#E8F2EC';
+  updateProgress();
+}
+
+
+
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SUPABASE DATABASE INTEGRATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+const DB_CONFIG_KEY = 'qttb_db_config';
+
+function getDbConfig() {
+  try { return JSON.parse(localStorage.getItem(DB_CONFIG_KEY) || 'null'); } catch { return null; }
+}
+
+function saveDbConfig() {
+  let url = document.getElementById('sb-url').value.trim().replace(/\/+$/, '');
+  const key = document.getElementById('sb-key').value.trim();
+  if(!url || !key) { setDbTestStatus('error','Enter both URL and key'); return; }
+  if(!url.startsWith('http')) url = 'https://' + url;
+  document.getElementById('sb-url').value = url;
+  localStorage.setItem(DB_CONFIG_KEY, JSON.stringify({ url, key }));
+  setDbTestStatus('loading','Testing connection…');
+  testDbConnection(url, key);
+}
+
+async function testDbConnection(url, key) {
+  try {
+    const resp = await fetch(`${url}/rest/v1/soil_surveys?limit=1&select=id`, {
+      headers: { 'apikey': key, 'Authorization': 'Bearer ' + key, 'Accept': 'application/json' }
+    });
+    if(resp.ok || resp.status === 406) {
+      setDbTestStatus('ok','✓ Connected — database ready');
+      updateDbBtn(true);
+      setTimeout(closeDbConfig, 1500);
+    } else if(resp.status === 404) {
+      setDbTestStatus('error','✗ 404 — check URL format: https://xxxx.supabase.co (no trailing slash)');
+    } else {
+      setDbTestStatus('error','✗ Error ' + resp.status + ' — check credentials');
+    }
+  } catch(e) { setDbTestStatus('error','✗ Connection failed: ' + e.message); }
+}
+
+function setDbTestStatus(type, msg) {
+  const el = document.getElementById('db-test-status');
+  if(!el) return;
+  const colors = { loading:'#B8720A', ok:'#2B5F3F', error:'#C0392B' };
+  el.textContent = msg; el.style.color = colors[type] || '#6B6860';
+}
+
+function showDbConfig() {
+  const cfg = getDbConfig();
+  if(cfg) {
+    const u = document.getElementById('sb-url'); if(u) u.value = cfg.url || '';
+    const k = document.getElementById('sb-key'); if(k) k.value = cfg.key || '';
+  }
+  const m = document.getElementById('db-modal');
+  if(m) m.style.display = 'flex';
+}
+
+function closeDbConfig() {
+  const m = document.getElementById('db-modal');
+  if(m) m.style.display = 'none';
+}
+
+function updateDbBtn(connected) {
+  const btn = document.getElementById('db-btn');
+  if(btn) { btn.textContent = connected ? '✓ Database' : '⚙ Database'; btn.style.color = connected ? '#2B5F3F' : ''; }
+}
+
+async function saveToSupabase(soilData, meteoData) {
+  const cfg = getDbConfig();
+  if(!cfg) return null;
+  const headers = { 'apikey':cfg.key,'Authorization':'Bearer '+cfg.key,'Content-Type':'application/json','Prefer':'return=representation' };
+
+  const toInt = v => { const n=parseInt(v); return isNaN(n)?null:n; };
+  const toNum = v => { const n=parseFloat(v); return isNaN(n)?null:n; };
+
+  const payload = {
+    ref_no: soilData.ref_no||null, commune: soilData.commune||null,
+    survey_date: soilData.survey_date||null, surveyor: soilData.surveyor||null,
+    gps_e: toNum(soilData.gps_e), gps_n: toNum(soilData.gps_n),
+    qttb_area: soilData.qttb_area||null,
+    slope_pct: toNum(soilData.slope_pct), slope_class: toInt(soilData.slope_class),
+    landform: toInt(soilData.landform), landform_class: soilData.landform_class||null,
+    water_table: soilData.water_table||null,
+    irrigation_system: toInt(soilData.irrigation_system), irrigation_type: soilData.irrigation_type||null,
+    drainage_class: toInt(soilData.drainage_class), drainage_channels: toInt(soilData.drainage_channels),
+    underdrains: toInt(soilData.underdrains), brazda: soilData.brazda||null,
+    flood_risk: toInt(soilData.flood_risk), land_cover: toInt(soilData.land_cover),
+    land_cover_class: soilData.land_cover_class||null, erosion_desc: soilData.erosion_desc||null,
+    erosion_class: toInt(soilData.erosion_class), erosion_risk: toInt(soilData.erosion_risk),
+    erodibility: toInt(soilData.erodibility), topsoil_h: toInt(soilData.topsoil_h),
+    subsoil_j: toInt(soilData.subsoil_j), depth_class: toInt(soilData.depth_class),
+    taw_class: toInt(soilData.taw_class), taw_100: toNum(soilData.taw_100),
+    soil_type: soilData.soil_type||null, flooding_info: soilData.flooding_info||null,
+    plant_health: toInt(soilData.plant_health), disease_pest: soilData.disease_pest||null,
+    phenology: soilData.phenology||null, observations: soilData.observations||null,
+    data_source: 'manual',
+  };
+
+  const r = await fetch(`${cfg.url}/rest/v1/soil_surveys`, { method:'POST', headers, body:JSON.stringify(payload) });
+  if(!r.ok) throw new Error('Survey save failed: ' + await r.text());
+  const [survey] = await r.json();
+  const sid = survey.id;
+
+  // Horizons
+  if(soilData.horizons?.length) {
+    const hp = soilData.horizons.filter(h=>h.horizon||h.depth).map((h,i)=>({
+      survey_id:sid, horizon_order:i+1, horizon_label:h.horizon||null,
+      depth_from_cm: h.depth?toInt(h.depth.split('-')[0]):null,
+      depth_to_cm:   h.depth?toInt(h.depth.split('-')[1]):null,
+      thickness_cm: toInt(h.thickness), colour:h.colour||null,
+      mottles_o:h.mottles_O||null, mottles_d:h.mottles_D||null, mottles_rg:h.mottles_RG||null,
+      texture_class:h.texture_class||null, taw_group:h.taw_group||null,
+      taw_mm_cm:toNum(h.taw_mm_cm), consistency:h.consistency||null, ataw:toNum(h.aTAW),
+      stones_pct:toNum(h.stones_pct), stone_class:h.stone_class||null,
+      stone_free_pct:toNum(h.stone_free_pct), taw_mm_cols:toNum(h.taw_mm_cols),
+    }));
+    if(hp.length) await fetch(`${cfg.url}/rest/v1/soil_horizons`,{method:'POST',headers,body:JSON.stringify(hp)});
+  }
+
+  // Meteo
+  if(meteoData && Object.values(meteoData).some(v=>v)) {
+    const mp = {
+      survey_id:sid, meteo_station:meteoData.meteo_station||null,
+      obs_date:meteoData.meteo_date||null, obs_time:meteoData.meteo_time||null,
+      data_source:meteoData.meteo_source||'manual',
+      temp_min:toNum(meteoData.temp_min), temp_max:toNum(meteoData.temp_max), temp_mean:toNum(meteoData.temp_mean),
+      lst:toNum(meteoData.lst), soil_temp_10:toNum(meteoData.soil_temp_10), soil_temp_30:toNum(meteoData.soil_temp_30),
+      gdd:toNum(meteoData.gdd), chill_hours:toNum(meteoData.chill_hours),
+      frost_days:toInt(meteoData.frost_days), heat_stress_days:toInt(meteoData.heat_stress_days),
+      temp_anomaly:toNum(meteoData.temp_anomaly), rainfall_daily:toNum(meteoData.rainfall_daily),
+      rainfall_monthly:toNum(meteoData.rainfall_monthly), rainfall_seasonal:toNum(meteoData.rainfall_seasonal),
+      rainfall_anomaly:toNum(meteoData.rainfall_anomaly), rh_min:toNum(meteoData.rh_min),
+      rh_max:toNum(meteoData.rh_max), rh_mean:toNum(meteoData.rh_mean), dew_point:toNum(meteoData.dew_point),
+      eto:toNum(meteoData.eto), etc:toNum(meteoData.etc), water_deficit:toNum(meteoData.water_deficit),
+      soil_water_balance:toNum(meteoData.soil_water_balance), sm_10:toNum(meteoData.sm_10),
+      sm_30:toNum(meteoData.sm_30), sm_60:toNum(meteoData.sm_60), sm_index:toNum(meteoData.sm_index),
+      ndvi:toNum(meteoData.ndvi), evi:toNum(meteoData.evi), ndwi:toNum(meteoData.ndwi),
+      water_stress_class:meteoData.water_stress_class||null, wind_speed:toNum(meteoData.wind_speed),
+      wind_dir:meteoData.wind_dir||null, solar_rad:toNum(meteoData.solar_rad),
+      sunshine_hrs:toNum(meteoData.sunshine_hrs), disease_risk:meteoData.disease_risk||null,
+      drought_stress:meteoData.drought_stress||null, alternate_bearing:meteoData.alternate_bearing||null,
+      meteo_notes:meteoData.meteo_notes||null,
+    };
+    await fetch(`${cfg.url}/rest/v1/meteo_observations`,{method:'POST',headers,body:JSON.stringify(mp)});
+  }
+  return sid;
+}
+
+async function loadFromSupabase() {
+  const cfg = getDbConfig();
+  if(!cfg) { showStatus('error','Database not configured — click ⚙ Database'); return; }
+  try {
+    const resp = await fetch(`${cfg.url}/rest/v1/survey_summary?order=created_at.desc&limit=100`,
+      { headers:{'apikey':cfg.key,'Authorization':'Bearer '+cfg.key} });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const surveys = await resp.json();
+    renderDbRecords(surveys);
+    showStatus('success',`Loaded ${surveys.length} records from database`);
+  } catch(e) { showStatus('error','Load failed: '+e.message); }
+}
+
+function renderDbRecords(surveys) {
+  const container = document.getElementById('records-list');
+  if(!surveys.length) { container.innerHTML='<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:32px 0">No records in database yet.</p>'; return; }
+  container.innerHTML = surveys.map(s => {
+    const area = {korce_apple:'Korçë–Apple',lushnje_tomato:'Lushnje–Tomato',vlore_olive:'Vlorë–Olive'}[s.qttb_area]||s.qttb_area||'—';
+    return `<div class="record-item"><div>
+      <div style="font-weight:500">${s.commune||'—'} · ${area} · ${s.surveyor||'—'}</div>
+      <div class="record-meta">Ref:${s.ref_no||'—'} | Date:${s.survey_date||'—'} | Soil:${s.soil_type||'—'} | TAW:${s.taw_100||'—'}mm | H:${s.horizon_count||0} | DB#${s.id}</div>
+    </div><div class="record-actions">
+      <button class="btn btn-outline" style="font-size:11px;padding:4px 10px" onclick="loadDbRecord(${s.id})">Load</button>
+      <button class="btn btn-danger" style="font-size:11px;padding:4px 10px" onclick="deleteDbRecord(${s.id})">Delete</button>
+    </div></div>`;
+  }).join('');
+}
+
+async function loadDbRecord(id) {
+  const cfg = getDbConfig(); if(!cfg) return;
+  try {
+    const [sr,hr,mr] = await Promise.all([
+      fetch(`${cfg.url}/rest/v1/soil_surveys?id=eq.${id}`,{headers:{'apikey':cfg.key,'Authorization':'Bearer '+cfg.key}}).then(r=>r.json()),
+      fetch(`${cfg.url}/rest/v1/soil_horizons?survey_id=eq.${id}&order=horizon_order`,{headers:{'apikey':cfg.key,'Authorization':'Bearer '+cfg.key}}).then(r=>r.json()),
+      fetch(`${cfg.url}/rest/v1/meteo_observations?survey_id=eq.${id}&limit=1`,{headers:{'apikey':cfg.key,'Authorization':'Bearer '+cfg.key}}).then(r=>r.json()),
+    ]);
+    const survey=sr[0], meteo=mr[0]||{};
+    const s={...survey,horizons:hr.map(h=>({horizon:h.horizon_label,depth:`${h.depth_from_cm}-${h.depth_to_cm}`,thickness:h.thickness_cm,colour:h.colour,mottles_O:h.mottles_o,mottles_D:h.mottles_d,mottles_RG:h.mottles_rg,texture_class:h.texture_class,taw_group:h.taw_group,taw_mm_cm:h.taw_mm_cm,consistency:h.consistency,aTAW:h.ataw,stones_pct:h.stones_pct,stone_class:h.stone_class,stone_free_pct:h.stone_free_pct,taw_mm_cols:h.taw_mm_cols}))};
+    const m={...meteo,meteo_date:meteo.obs_date,meteo_time:meteo.obs_time,meteo_source:meteo.data_source};
+    fillFormFromData(s,m);
+    document.querySelectorAll('.tab')[0].click();
+    showStatus('success',`Loaded DB record #${id} — ${survey.commune}, ${survey.survey_date}`);
+  } catch(e) { showStatus('error','Load failed: '+e.message); }
+}
+
+async function deleteDbRecord(id) {
+  if(!confirm(`Delete record #${id} from database?`)) return;
+  const cfg = getDbConfig(); if(!cfg) return;
+  await fetch(`${cfg.url}/rest/v1/soil_surveys?id=eq.${id}`,{method:'DELETE',headers:{'apikey':cfg.key,'Authorization':'Bearer '+cfg.key}});
+  loadFromSupabase();
+  showStatus('success',`Record #${id} deleted`);
+}
+
+buildHorizons();
+updateRecordCount();
+updateProgress();
 
 document.getElementById('meteo_date').value = document.getElementById('survey_date').value;
 document.getElementById('survey_date').addEventListener('change', function() {
