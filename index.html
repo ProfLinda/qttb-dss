@@ -351,13 +351,49 @@
     </div>
   </div>
   <div class="header-actions">
+    <button class="btn btn-ghost" onclick="showDbConfig()" id="db-btn">⚙ Database</button>
     <label class="btn btn-ghost" style="cursor:pointer">
       Import JSON
       <input type="file" accept=".json" style="display:none" onchange="importJSON(this)">
     </label>
-    <button class="btn btn-ghost" onclick="loadRef133()">Load Ref.133 sample</button>
+    <button class="btn btn-ghost" onclick="loadRef133()" title="Load a real completed survey from Fushë Krujë (2003) as an example of how a filled form looks">Example survey ↗</button>
     <button class="btn btn-ghost" onclick="clearForm()">Clear form</button>
     <button class="btn btn-white" onclick="saveRecord()">Save record</button>
+  </div>
+</div>
+
+<!-- SUPABASE CONFIG MODAL -->
+<div id="db-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:12px;padding:24px;max-width:520px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.2);font-family:'IBM Plex Sans',sans-serif;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <strong style="font-size:15px">Supabase — database connection</strong>
+      <button onclick="closeDbConfig()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#9A9890;line-height:1">×</button>
+    </div>
+    <p style="font-size:12px;color:#6B6860;margin-bottom:14px;line-height:1.6">
+      Free PostgreSQL database at <strong>app.supabase.com</strong>. Run <code style="background:#F5F3EE;padding:1px 5px;border-radius:3px">db/schema.sql</code> first, then paste credentials.
+    </p>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+      <div>
+        <label style="font-size:11px;color:#6B6860;display:block;margin-bottom:4px">Project URL</label>
+        <input type="text" id="sb-url" placeholder="https://xxxxxxxxxxxx.supabase.co"
+          style="width:100%;font-size:13px;padding:8px 10px;border:1px solid #D8D4CC;border-radius:6px;box-sizing:border-box">
+      </div>
+      <div>
+        <label style="font-size:11px;color:#6B6860;display:block;margin-bottom:4px">Anon public key</label>
+        <input type="password" id="sb-key" placeholder="eyJhbGci..."
+          style="width:100%;font-size:13px;padding:8px 10px;border:1px solid #D8D4CC;border-radius:6px;box-sizing:border-box">
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <button onclick="saveDbConfig()" style="background:#2B5F3F;color:#fff;border:none;padding:8px 18px;border-radius:6px;font-size:13px;cursor:pointer;font-family:inherit">Save &amp; test</button>
+      <button onclick="closeDbConfig()" style="background:transparent;border:1px solid #D8D4CC;padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer;font-family:inherit">Cancel</button>
+      <span id="db-test-status" style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:#6B6860"></span>
+    </div>
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #EAE7E0;font-size:11px;color:#6B6860;line-height:1.8">
+      <strong>Your Supabase URL:</strong><br>
+      <code style="background:#F4F2EE;padding:2px 6px;border-radius:3px">https://gixqtwjyuwzwrnulnkbi.supabase.co</code><br>
+      Anon key in your Supabase → Settings → API
+    </div>
   </div>
 </div>
 
@@ -375,6 +411,27 @@
   <!-- ===== SOIL TAB ===== -->
   <div id="tab-soil">
 
+    <!-- WORKFLOW GUIDE -->
+    <div style="background:#F2F9F5;border-bottom:1px solid #b0d9be;padding:10px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+      <div style="font-size:11px;font-weight:600;color:#1D4029;white-space:nowrap;">How to fill a survey:</div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:11px;color:#2B5F3F;">
+        <span style="background:#2B5F3F;color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0">1</span>
+        <span style="color:#1A1916">Select location below</span>
+        <span style="color:#b0d9be">→</span>
+        <span style="background:#2B5F3F;color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0">2</span>
+        <span style="color:#1A1916">GPS + soil data fills automatically</span>
+        <span style="color:#b0d9be">→</span>
+        <span style="background:#2B5F3F;color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0">3</span>
+        <span style="color:#1A1916">Add surveyor name, date, crop</span>
+        <span style="color:#b0d9be">→</span>
+        <span style="background:#2B5F3F;color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0">4</span>
+        <span style="color:#1A1916">Fill or correct any field manually</span>
+        <span style="color:#b0d9be">→</span>
+        <span style="background:#2B5F3F;color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0">5</span>
+        <span style="color:#1A1916">Save record</span>
+      </div>
+    </div>
+
     <div class="progress-bar-wrap">
       <span class="progress-label">Form completion</span>
       <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
@@ -385,49 +442,32 @@
       <div class="card-title"><span class="card-title-dot"></span>Site identification</div>
 
       <!-- LOCATION SELECTOR -->
-      <div style="margin-bottom:14px; padding:12px 14px; background:#F5F3EE; border:1px solid #D8D4CC; border-radius:8px;">
-        <div style="font-size:11px; font-weight:500; color:#1A1916; margin-bottom:8px;">Select location to auto-fill GPS &amp; area</div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <!-- QTTB production areas -->
-          <button class="loc-btn" onclick="selectLocation('fushe_kruje')" id="loc-fushe_kruje">
-            📍 Fushë Krujë <span style="font-size:9px; opacity:0.7">ATTC · HQ</span>
-          </button>
-          <button class="loc-btn" onclick="selectLocation('korce')" id="loc-korce">
-            🍎 Korçë <span style="font-size:9px; opacity:0.7">Apple</span>
-          </button>
-          <button class="loc-btn" onclick="selectLocation('lushnje')" id="loc-lushnje">
-            🍅 Lushnje <span style="font-size:9px; opacity:0.7">Tomato</span>
-          </button>
-          <button class="loc-btn" onclick="selectLocation('vlore')" id="loc-vlore">
-            🫒 Vlorë <span style="font-size:9px; opacity:0.7">Olive</span>
-          </button>
-          <span style="border-left:1px solid #D8D4CC; margin:0 2px;"></span>
-          <!-- Custom commune search -->
-          <input type="text" id="commune-search" placeholder="Or type any commune…"
-            style="font-size:12px; padding:5px 10px; border:1px solid #D8D4CC; border-radius:20px; background:#fff; outline:none; min-width:160px;"
-            oninput="searchCommune(this.value); if(this.value.trim()) document.getElementById('commune').value=this.value.trim();" list="commune-list">
-          <datalist id="commune-list">
-            <option value="Fushë Krujë">
-            <option value="Prezë">
-            <option value="Krujë">
-            <option value="Korçë">
-            <option value="Lushnje">
-            <option value="Vlorë">
-            <option value="Tiranë">
-            <option value="Durrës">
-            <option value="Shkodër">
-            <option value="Elbasan">
-            <option value="Berat">
-            <option value="Gjirokastër">
-            <option value="Sarandë">
-            <option value="Pogradec">
-            <option value="Kavajë">
-            <option value="Lezhë">
-            <option value="Kukës">
-            <option value="Peshkopi">
-          </datalist>
+      <div style="margin-bottom:14px;padding:12px 14px;background:#F5F3EE;border:1px solid #D8D4CC;border-radius:8px;">
+        <div style="font-size:11px;font-weight:600;color:#1A1916;margin-bottom:4px;">Step 1 — Select survey location</div>
+        <div style="font-size:11px;color:#6B6860;margin-bottom:10px;">QTTB production areas auto-fill soil data. For any other Albanian commune, type the name below.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <button class="loc-btn active" onclick="selectLocation('fushe_kruje')" id="loc-fushe_kruje">📍 Fushë Krujë <span style="font-size:9px;opacity:0.7">ATTC HQ</span></button>
+          <button class="loc-btn" onclick="selectLocation('korce')" id="loc-korce">📍 Korçë <span style="font-size:9px;opacity:0.7">Apple</span></button>
+          <button class="loc-btn" onclick="selectLocation('lushnje')" id="loc-lushnje">📍 Lushnje <span style="font-size:9px;opacity:0.7">Tomato</span></button>
+          <button class="loc-btn" onclick="selectLocation('vlore')" id="loc-vlore">📍 Vlorë <span style="font-size:9px;opacity:0.7">Olive</span></button>
+          <div style="border-left:1px solid #D8D4CC;margin:0 2px;"></div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <input type="text" id="commune-search" placeholder="Other commune — type name…"
+              style="font-size:12px;padding:5px 10px;border:1px solid #D8D4CC;border-radius:20px;background:#fff;outline:none;min-width:180px;"
+              oninput="searchCommune(this.value); if(this.value.trim()) document.getElementById('commune').value=this.value.trim();"
+              list="commune-list">
+            <datalist id="commune-list">
+              <option value="Prezë"><option value="Krujë"><option value="Tiranë">
+              <option value="Durrës"><option value="Shkodër"><option value="Elbasan">
+              <option value="Berat"><option value="Gjirokastër"><option value="Sarandë">
+              <option value="Pogradec"><option value="Kavajë"><option value="Lezhë">
+              <option value="Kukës"><option value="Peshkopi"><option value="Burrel">
+              <option value="Laç"><option value="Rrogozhinë"><option value="Fier">
+            </datalist>
+            <span style="font-size:10px;color:#9E9B95">GPS must be entered manually</span>
+          </div>
         </div>
-        <div id="loc-status" style="font-size:11px; color:#2B5F3F; margin-top:6px; font-family:'IBM Plex Mono',monospace; min-height:16px;"></div>
+        <div id="loc-status" style="font-size:11px;color:#2B5F3F;font-family:'IBM Plex Mono',monospace;min-height:14px;"></div>
       </div>
 
       <div class="grid-4">
@@ -792,29 +832,52 @@
   <!-- ===== METEO TAB ===== -->
   <div id="tab-meteo" style="display:none">
 
-    <!-- COPERNICUS API CONFIG -->
-    <div class="card" style="border-color:#b0d9be; background:#F2F9F5;">
-      <div class="card-title"><span class="card-title-dot"></span>Copernicus Data Space — API connection
-        <span id="cop-api-status" style="margin-left:auto; font-size:10px; font-family:'IBM Plex Mono',monospace; color:#6B6860">Not configured</span>
+      <!-- COPERNICUS CONFIG — saves like database, auto-connects -->
+    <div class="card" style="border-color:#b0d9be;background:#F2F9F5;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div>
+          <div style="font-size:13px;font-weight:500;color:#1A1916;">Copernicus Sentinel-2 — Vegetation &amp; moisture indices</div>
+          <div style="font-size:11px;color:#6B6860;margin-top:2px;">Free · Register at <a href="https://dataspace.copernicus.eu" target="_blank" style="color:#2B5F3F">dataspace.copernicus.eu</a> → User settings → OAuth clients</div>
+        </div>
+        <span id="cop-api-status" style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:#B8720A;white-space:nowrap;margin-left:10px;">Not connected</span>
       </div>
-      <div class="grid-3">
+
+      <div class="grid-3" style="margin-bottom:10px;">
         <div class="field" style="grid-column:span 2">
-          <label>Sentinel Hub Client ID <span style="font-size:10px; color:#9E9B95">(free registration: dataspace.copernicus.eu)</span></label>
-          <input type="text" id="cop_client_id" placeholder="e.g. sh-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" oninput="updateCopernicusStatus()">
+          <label>Client ID <span style="font-size:10px;color:#2B5F3F;font-weight:500">← QTTB project credentials pre-filled</span></label>
+          <input type="text" id="cop_client_id" oninput="saveCopernicusCredentials()" placeholder="sh-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
         </div>
         <div class="field">
           <label>Client Secret</label>
-          <input type="password" id="cop_client_secret" placeholder="your secret" oninput="updateCopernicusStatus()">
+          <input type="password" id="cop_client_secret" oninput="saveCopernicusCredentials()" placeholder="your secret">
         </div>
       </div>
-      <div style="margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-        <button class="btn btn-accent" onclick="testCopernicusAPI()">Test connection</button>
-        <button class="btn btn-outline" onclick="fetchCopernicus()">Fetch indices for current GPS</button>
-        <span style="font-size:11px; color:#6B6860">Without API key: NDVI/indices fields must be entered manually. ERA5 climate data below is always available.</span>
+
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+        <button onclick="connectCopernicus()" style="background:#2B5F3F;color:#fff;border:none;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:500">
+          Connect &amp; fetch indices
+        </button>
+        <div id="cop-fetch-status" style="font-size:11px;color:#6B6860;font-family:'IBM Plex Mono',monospace;"></div>
+      </div>
+
+      <!-- Only shown if proxy not deployed and direct call blocked -->
+      <div id="cop-cors-fallback" style="display:none;padding:10px 12px;background:#FDF4E3;border:1px solid #e0c080;border-radius:6px;">
+        <div style="font-size:11px;font-weight:500;color:#633806;margin-bottom:5px;">
+          Browser blocked — run this once in terminal to get a 1-hour token:
+        </div>
+        <code id="curl-cmd-display" onclick="copyCurl()" title="Click to copy"
+          style="display:block;background:#fff;padding:8px;border-radius:4px;font-size:10px;color:#1a1916;word-break:break-all;white-space:pre-wrap;cursor:pointer;border:1px solid #e0c080;line-height:1.5">—</code>
+        <div style="display:flex;gap:8px;margin-top:7px;align-items:center;flex-wrap:wrap;">
+          <button onclick="copyCurl()" style="background:#C47A1A;color:#fff;border:none;padding:5px 14px;border-radius:4px;cursor:pointer;font-size:11px;font-family:inherit">Copy command</button>
+          <span id="curl-copy-status" style="font-size:11px;color:#2B5F3F;"></span>
+          <input type="text" id="cop-manual-token" placeholder="Paste token here (eyJhbGci…)"
+            style="flex:1;min-width:160px;font-size:10px;padding:5px 8px;border:1px solid #e0c080;border-radius:4px;font-family:'IBM Plex Mono',monospace"
+            oninput="onTokenPaste(this.value)">
+        </div>
       </div>
     </div>
 
-    <div class="card">
+        <div class="card">
       <div class="card-title"><span class="card-title-dot"></span>Observation period &amp; station</div>
       <div class="grid-4">
         <div class="field">
@@ -966,7 +1029,6 @@
       <div class="card-title"><span class="card-title-dot"></span>Soil moisture &amp; vegetation indices
         <span style="margin-left:auto; display:flex; align-items:center; gap:8px;">
           <button class="btn btn-outline" style="font-size:10px; padding:3px 10px;" onclick="fetchCopernicus()">⬇ Fetch from Copernicus</button>
-          <div id="copernicus-status" style="font-size:10px; font-family:'IBM Plex Mono',monospace; color:#6B6860;"></div>
         </span>
       </div>
       <div class="grid-4">
@@ -1489,6 +1551,12 @@ function updateProgress() {
 
 // ─── LOAD REAL REF.133 SURVEY DATA ─────────────────────────────────────────
 function loadRef133() {
+  // Clear form first so Ref.133 data fills cleanly
+  clearForm();
+  // Short delay so clearForm finishes
+  setTimeout(_loadRef133Data, 50);
+}
+function _loadRef133Data() {
   document.getElementById('commune').value = 'Prezë';
   document.getElementById('survey_date').value = '2003-03-15';
   document.getElementById('surveyor').value = 'Gr. Sulçkrani';
@@ -1863,58 +1931,84 @@ async function fetchASIG() {
   // ── LOCAL FALLBACK: known QTTB field data for the 4 production areas ───────
   // Source: LUPP2 surveys, Ref.133, ASIG layer attributes
   const LOCAL_DATA = {
-    // Fushë Krujë (41.49°N, 19.72°E) — Ref.133, 2003
     fushe_kruje: {
       lat:41.492, lng:19.716, radius:0.05,
-      land_cover_class: 'S2 — Moderately good arable',
-      soil_type: 'Fluvisol — alluvium parent',
-      flooding_info: 'S2 (moderately suitable)',
-      slope_pct: '1', slope_class: '1',
-      landform: '1', landform_class: 'Broad plain, flat',
-      water_table: 'N', drainage_class: '2',
-      flood_risk: '1', erosion_class: '0', erosion_risk: '1',
-      topsoil_h: '2', subsoil_j: '2', depth_class: '1',
-      taw_100: '166', taw_class: '1',
-      erodibility: '2',
+      // Land & topography
+      land_cover_class:'S2 — Moderately good arable (Alfalfa/cereals)',
+      soil_type:'Gleyic Fluvisol — alluvium parent, clay loam, imperfect drainage',
+      flooding_info:'S2 — moderately suitable, irrigation possible',
+      slope_pct:'1', slope_class:'1', landform:'1', landform_class:'Broad plain, flat',
+      // Water
+      water_table:'N', irrigation_system:'1', irrigation_type:'F',
+      drainage_class:'2', drainage_channels:'1', underdrains:'0', brazda:'N', flood_risk:'1',
+      // Land cover
+      land_cover:'5', land_cover_class:'Alfalfa / mixed arable',
+      // Erosion
+      erosion_desc:'None observed', erosion_class:'0', erosion_risk:'1', erodibility:'2',
+      // Soil classification
+      topsoil_h:'2', subsoil_j:'2', depth_class:'1', taw_100:'166', taw_class:'1',
+      // Representative horizons (Ref.133, 2003)
+      horizons:[
+        {h:'Ap', d:'0-30',   t:'30', c:'DR', mo:'0', tx:'CL',  mm:'1.8', at:'1.0', st:'0',  tc:'54'},
+        {h:'B1', d:'30-50',  t:'20', c:'GB', mo:'F', tx:'CL',  mm:'1.6', at:'1.0', st:'0',  tc:'32'},
+        {h:'B2', d:'50-90',  t:'40', c:'GB', mo:'C', tx:'SCL', mm:'1.6', at:'1.0', st:'0',  tc:'64'},
+        {h:'B3', d:'90-160', t:'70', c:'GB', mo:'C', tx:'L',   mm:'1.6', at:'1.0', st:'0',  tc:'112'},
+      ],
+      observations:'Fushë Krujë ATTC area. Alluvial plain, broad and flat. Well-suited for arable crops. Imperfect drainage but functional channels. TAW=166mm. Ref.133, SRI Tirana 2003.',
     },
-    // Korçë (40.62°N, 20.78°E) — apple area
     korce: {
       lat:40.618, lng:20.778, radius:0.1,
-      land_cover_class: 'S3-2 — Poor arable, overhead/drip only',
-      soil_type: 'Cambisol — colluvium/residuum',
-      flooding_info: 'S3 (poor arable)',
-      slope_pct: '8', slope_class: '2',
-      landform: '2', landform_class: 'Narrow valley / footslopes',
-      water_table: 'N', drainage_class: '1',
-      flood_risk: '1', erosion_class: '1', erosion_risk: '2',
-      topsoil_h: '3', subsoil_j: '2', depth_class: '2',
-      taw_100: '120', taw_class: '3', erodibility: '2',
+      land_cover_class:'S3-2 — Apple orchards (Starking, Golden)',
+      soil_type:'Eutric Cambisol — colluvium/residuum, sandy clay loam, moderate depth',
+      flooding_info:'S3-2 — poor arable, overhead/drip irrigation only',
+      slope_pct:'8', slope_class:'2', landform:'2', landform_class:'Narrow valley / footslopes',
+      water_table:'N', irrigation_system:'2', irrigation_type:'O',
+      drainage_class:'1', drainage_channels:'0', underdrains:'0', brazda:'N', flood_risk:'1',
+      land_cover:'1', land_cover_class:'Fruit trees — apple orchards',
+      erosion_desc:'Sheet erosion on steeper slopes', erosion_class:'1', erosion_risk:'2', erodibility:'2',
+      topsoil_h:'3', subsoil_j:'2', depth_class:'2', taw_100:'120', taw_class:'3',
+      horizons:[
+        {h:'Ap', d:'0-25',  t:'25', c:'DR', mo:'0', tx:'SCL', mm:'1.6', at:'1.0', st:'5',  tc:'38'},
+        {h:'Bw', d:'25-60', t:'35', c:'BR', mo:'0', tx:'CL',  mm:'1.5', at:'1.0', st:'10', tc:'47'},
+        {h:'BC', d:'60-95', t:'35', c:'YB', mo:'0', tx:'SCL', mm:'1.4', at:'1.0', st:'20', tc:'45'},
+      ],
+      observations:'QTTB Korçë apple area. Continental climate, cold winters (chilling hours ~1140). Frost risk Nov-Mar critical. Drip/overhead irrigation. Scab and powdery mildew monitoring from green tip.',
     },
-    // Lushnje (40.94°N, 19.71°E) — tomato area
     lushnje: {
       lat:40.942, lng:19.705, radius:0.1,
-      land_cover_class: 'S2 — Moderately good arable',
-      soil_type: 'Fluvisol / Vertisol — alluvial plain',
-      flooding_info: 'S2 (moderately suitable)',
-      slope_pct: '1', slope_class: '1',
-      landform: '1', landform_class: 'Broad plain',
-      water_table: '80', drainage_class: '2',
-      flood_risk: '2', erosion_class: '0', erosion_risk: '1',
-      topsoil_h: '1', subsoil_j: '1', depth_class: '1',
-      taw_100: '150', taw_class: '2', erodibility: '1',
+      land_cover_class:'S2 — Vegetables / tomato rotation',
+      soil_type:'Chromic Vertisol — alluvial plain, clay, high shrink-swell, slickensides 30-70cm',
+      flooding_info:'S2 — moderately suitable, flood risk in wet years',
+      slope_pct:'1', slope_class:'1', landform:'1', landform_class:'Broad alluvial plain',
+      water_table:'80', irrigation_system:'1', irrigation_type:'F',
+      drainage_class:'2', drainage_channels:'2', underdrains:'0', brazda:'Y', flood_risk:'2',
+      land_cover:'6', land_cover_class:'Vegetables — tomato, pepper rotation',
+      erosion_desc:'None on flat terrain', erosion_class:'0', erosion_risk:'1', erodibility:'1',
+      topsoil_h:'1', subsoil_j:'1', depth_class:'1', taw_100:'150', taw_class:'2',
+      horizons:[
+        {h:'Ap',  d:'0-30',   t:'30', c:'DR', mo:'0', tx:'C',  mm:'1.5', at:'1.0', st:'0', tc:'45'},
+        {h:'Bss', d:'30-70',  t:'40', c:'GB', mo:'C', tx:'C',  mm:'1.5', at:'1.0', st:'0', tc:'60'},
+        {h:'Bw',  d:'70-130', t:'60', c:'GB', mo:'M', tx:'CL', mm:'1.6', at:'1.0', st:'0', tc:'96'},
+      ],
+      observations:'QTTB Lushnje tomato area. Flat Myzeqe plain. Vertisol — clay swells when wet, cracks when dry. Water table at 80cm. Irrigation scheduling critical. Blight monitoring from June.',
     },
-    // Vlorë (40.47°N, 19.48°E) — olive area
     vlore: {
       lat:40.468, lng:19.483, radius:0.15,
-      land_cover_class: 'S3 — Poor arable / orchard',
-      soil_type: 'Regosol / Calcisol — limestone residuum',
-      flooding_info: 'S3 (poor — slope limitation)',
-      slope_pct: '15', slope_class: '3',
-      landform: '3', landform_class: 'Rolling–hilly',
-      water_table: 'N', drainage_class: '1',
-      flood_risk: '0', erosion_class: '1', erosion_risk: '3',
-      topsoil_h: '3', subsoil_j: '3', depth_class: '3',
-      taw_100: '90', taw_class: '3', erodibility: '3',
+      land_cover_class:'S3 — Olive orchards (Kalinjot, Frantojo)',
+      soil_type:'Calcic Regosol — limestone residuum, gravelly SCL, calcareous, shallow-moderate depth',
+      flooding_info:'S3 — poor arable, slope and depth limitations',
+      slope_pct:'15', slope_class:'3', landform:'3', landform_class:'Rolling — hilly, limestone',
+      water_table:'N', irrigation_system:'3', irrigation_type:'D',
+      drainage_class:'1', drainage_channels:'0', underdrains:'0', brazda:'N', flood_risk:'0',
+      land_cover:'3', land_cover_class:'Olive orchards — traditional and improved varieties',
+      erosion_desc:'Sheet and rill erosion on slopes >13%', erosion_class:'1', erosion_risk:'3', erodibility:'3',
+      topsoil_h:'3', subsoil_j:'3', depth_class:'3', taw_100:'90', taw_class:'3',
+      horizons:[
+        {h:'Ap', d:'0-20',  t:'20', c:'BR', mo:'0', tx:'SCL', mm:'1.4', at:'1.0', st:'25', tc:'21'},
+        {h:'Bk', d:'20-55', t:'35', c:'YB', mo:'0', tx:'CL',  mm:'1.3', at:'0.8', st:'35', tc:'30'},
+        {h:'Ck', d:'55-90', t:'35', c:'WH', mo:'0', tx:'SCL', mm:'1.1', at:'0.8', st:'50', tc:'19'},
+      ],
+      observations:'QTTB Vlorë olive area. Mediterranean climate, hot dry summers. Drip irrigation essential July-Sep. Alternate bearing management required. Erosion control on slopes >13%.',
     },
   };
 
@@ -1936,16 +2030,45 @@ async function fetchASIG() {
       depth_class:'Depth class', taw_100:'TAW 100cm', taw_class:'TAW class',
       erodibility:'Erodibility',
     };
-    Object.entries(fieldMap).forEach(([fieldId, label]) => {
-      if(!data[fieldId]) return;
+    // Fill all form fields from LOCAL_DATA
+    const allFieldIds = ['land_cover_class','soil_type','flooding_info','slope_pct','slope_class',
+      'landform','landform_class','water_table','irrigation_system','irrigation_type',
+      'drainage_class','drainage_channels','underdrains','brazda','flood_risk','land_cover',
+      'erosion_desc','erosion_class','erosion_risk','erodibility',
+      'topsoil_h','subsoil_j','depth_class','taw_100','taw_class','observations'];
+    allFieldIds.forEach(fieldId => {
+      if(data[fieldId] === undefined) return;
       const el = document.getElementById(fieldId);
-      if(el && !el.value) {
+      if(el) {
         el.value = data[fieldId];
         el.style.borderColor = '#2B5F3F';
         el.style.background  = '#E8F2EC';
-        filledFields.push(label);
+        filledFields.push(fieldId);
+        updateProgress();
       }
     });
+    // Fill horizon table rows
+    if(data.horizons && data.horizons.length) {
+      data.horizons.forEach((hz, i) => {
+        if(i >= 5) return;
+        const setH = (col, val) => {
+          if(val === undefined) return;
+          const el = document.getElementById('h' + i + '_' + col);
+          if(el) { el.value = val; el.style.borderColor='#2B5F3F'; el.style.background='#E8F2EC'; }
+        };
+        setH('horizon', hz.h); setH('depth', hz.d); setH('thick', hz.t);
+        setH('colour', hz.c); setH('mot_o', hz.mo || '0');
+        setH('taw_mm', hz.mm); setH('ataw', hz.at); setH('stones', hz.st); setH('taw_cols', hz.tc);
+        const txSel = document.getElementById('h' + i + '_texture');
+        if(txSel && hz.tx) {
+          for(const opt of txSel.options) {
+            if(opt.text.startsWith(hz.tx) || opt.value === hz.tx) { txSel.value = opt.value; break; }
+          }
+          txSel.style.borderColor='#2B5F3F'; txSel.style.background='#E8F2EC';
+        }
+      });
+      filledFields.push('horizons (' + data.horizons.length + ' rows)');
+    }
     updateProgress();
   }
 
@@ -1958,6 +2081,23 @@ async function fetchASIG() {
         `<span style="font-size:11px;color:#6B6860">${filledFields.join(' · ')}</span><br>` +
         `<span style="font-size:10px;color:#9E9B95;margin-top:4px;display:block">Green fields = pre-loaded from ATTC surveys. Deploy <strong>asig-proxy</strong> in Supabase for live ASIG queries.</span>`;
     }
+  }
+
+
+  // Fill horizon rows from local data
+  if(matchedLocal && matchedLocal[1].horizons) {
+    matchedLocal[1].horizons.forEach((hz, i) => {
+      if(i >= 5) return;
+      const s = (col, val) => { const el = document.getElementById('h'+i+'_'+col); if(el) el.value = val||''; };
+      s('horizon', hz.label); s('depth', hz.depth); s('thick', hz.thick);
+      s('colour', hz.colour); s('mot_o', hz.mot_o||''); s('mot_d', hz.mot_d||'');
+      s('texture', hz.texture); s('taw_grp', hz.taw_grp);
+      s('taw_mm', hz.taw_mm); s('consist', hz.consist||'');
+      s('ataw', hz.ataw); s('stones', hz.stones||'0');
+      s('stone_free', hz.stone_free||'100'); s('taw_cols', hz.taw_cols||'');
+    });
+    filledFields.push('Soil horizons ('+matchedLocal[1].horizons.length+')');
+    updateProgress();
   }
 
   // Try live ASIG via Supabase proxy (non-blocking — runs in background)
@@ -2001,6 +2141,93 @@ async function fetchASIG() {
 }
 
 
+async function getCopernicusToken() {
+  // Return cached token if valid
+  if(copernicusToken && Date.now() < tokenExpiry) return copernicusToken;
+
+  // Check paste box
+  const pastedRaw = document.getElementById('cop-manual-token')?.value.trim();
+  if(pastedRaw && pastedRaw.startsWith('eyJ') && !pastedRaw.includes('…')) {
+    onTokenPaste(pastedRaw);
+    if(copernicusToken) return copernicusToken;
+  }
+
+  // Check localStorage cache
+  try {
+    const stored = JSON.parse(localStorage.getItem('qttb_cop_token') || 'null');
+    if(stored && stored.token && Date.now() < stored.expiry) {
+      copernicusToken = stored.token; tokenExpiry = stored.expiry;
+      return copernicusToken;
+    }
+  } catch(e) {}
+
+  // Try Supabase proxy (server-side — bypasses CORS on token endpoint)
+  const cfg = getDbConfig();
+  if(cfg) {
+    try {
+      const id  = document.getElementById('cop_client_id')?.value.trim()  || DEFAULT_COP_ID;
+      const sec = document.getElementById('cop_client_secret')?.value.trim() || DEFAULT_COP_SECRET;
+      const resp = await fetchSafe(`${cfg.url}/functions/v1/copernicus-proxy`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json','apikey':cfg.key,'Authorization':'Bearer '+cfg.key},
+        body:JSON.stringify({action:'get_token',clientId:id,clientSecret:sec})
+      }, 10000);
+      if(resp && resp.ok) {
+        const data = await resp.json();
+        if(data.access_token) {
+          copernicusToken = data.access_token;
+          tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
+          localStorage.setItem('qttb_cop_token', JSON.stringify({token:copernicusToken, expiry:tokenExpiry}));
+          return copernicusToken;
+        }
+      }
+    } catch(e) { /* proxy not deployed */ }
+  }
+
+  // No token available — user needs to paste from curl
+  return null;
+}
+
+
+function setCopStatus(msg, color) {
+  const el = document.getElementById('cop-api-status');
+  if(el) { el.textContent = msg; el.style.color = color || '#6B6860'; }
+}
+
+async function connectCopernicus() {
+  const lat = parseFloat(document.getElementById('gps_n')?.value);
+  const lng = parseFloat(document.getElementById('gps_e')?.value);
+  const hasGPS = lat && lng && !isNaN(lat) && !isNaN(lng);
+  const statusEl = document.getElementById('cop-fetch-status');
+
+  setCopStatus('⟳ Connecting…', '#B8720A');
+  if(statusEl) statusEl.textContent = '⟳ Getting authentication token…';
+  saveCopernicusCredentials();
+
+  const token = await getCopernicusToken();
+
+  if(!token) {
+    // Show curl fallback panel
+    const fb = document.getElementById('cop-cors-fallback');
+    if(fb) fb.style.display = 'block';
+    updateCurlCommand();
+    setCopStatus('Use curl command below to get token', '#B8720A');
+    if(statusEl) statusEl.textContent = 'Paste the token from curl, then click Connect again';
+    return;
+  }
+
+  setCopStatus('✓ Token valid — ' + Math.round((tokenExpiry - Date.now())/60000) + ' min', '#2B5F3F');
+
+  if(!hasGPS) {
+    if(statusEl) statusEl.textContent = '✓ Connected. Go to Soil tab → select a location, then come back to fetch indices.';
+    return;
+  }
+
+  if(statusEl) statusEl.textContent = '⟳ Fetching Sentinel-2 indices…';
+  await fetchCopernicus();
+}
+
+
 function loadCopernicusCredentials() {
   // QTTB project default credentials — shared across team
   const DEFAULT_ID     = 'sh-1ae15660-5ca2-4ad0-af22-4fd409efe6f0';
@@ -2039,223 +2266,293 @@ function clearApiStatus() {
 
 
 // ═══════════════════════════════════════════════════════════════════════════
-// COPERNICUS DATA SPACE API INTEGRATION
-// Endpoint: https://sh.dataspace.copernicus.eu/api/v1/process
-// Auth: OAuth2 via https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token
-// Free tier: 30,000 processing units/month — sufficient for field surveys
-// Register: https://dataspace.copernicus.eu → Create account → Dashboard → OAuth clients
-// ═══════════════════════════════════════════════════════════════════════════
-
-
-
-async function getCopernicusToken() {
-  const clientId = document.getElementById('cop_client_id').value.trim();
-  const clientSecret = document.getElementById('cop_client_secret').value.trim();
-  if(!clientId || !clientSecret) return null;
-
-  if(copernicusToken && Date.now() < tokenExpiry) return copernicusToken;
-
-  try {
-    const resp = await fetch(CDSE_TOKEN_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: clientId,
-        client_secret: clientSecret,
-      })
-    });
-    if(!resp.ok) throw new Error('Auth failed: ' + resp.status);
-    const data = await resp.json();
-    copernicusToken = data.access_token;
-    tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
-    return copernicusToken;
-  } catch(e) {
-    return null;
-  }
+// Safe fetch with timeout — does NOT use AbortSignal (causes postMessage cloning error in some browsers)
+async function fetchSafe(url, opts={}, timeoutMs=10000) {
+  return Promise.race([
+    fetch(url, opts),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), timeoutMs))
+  ]);
 }
 
-async function testCopernicusAPI() {
-  const statusEl = document.getElementById('cop-api-status');
-  statusEl.textContent = '⟳ Testing…'; statusEl.style.color = '#B8720A';
-  saveCopernicusCredentials();
+// COPERNICUS DATA SPACE — SIMPLIFIED FLOW
+// Token endpoint: ALWAYS blocked from browser (OAuth2 client_credentials)
+// Statistics API:  WORKS from browser with a valid Bearer token
+// Flow: curl in terminal → paste token → fetch from browser
+// ═══════════════════════════════════════════════════════════════════════════
 
-  let token;
-  try {
-    // Race token fetch against 10s timeout
-    token = await Promise.race([
-      getCopernicusToken(),
-      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 10000))
-    ]);
-  } catch(e) {
-    if(e.message === 'timeout') {
-      statusEl.textContent = '⟳ Token endpoint slow — trying catalog directly…'; 
-    } else {
-      statusEl.textContent = '✗ ' + e.message;
-      statusEl.style.color = '#C0392B';
-    }
-  }
+const CDSE_TOKEN_URL = 'https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token';
+const CDSE_STATS_URL   = 'https://sh.dataspace.copernicus.eu/api/v1/statistics';
+const CDSE_PROCESS_URL = 'https://sh.dataspace.copernicus.eu/api/v1/process';
 
-  if(!token) {
-    // Show curl helper for manual token
-    showCorsTokenHelper(
-      document.getElementById('cop_client_id').value.trim(),
-      document.getElementById('cop_client_secret').value.trim()
-    );
-    return;
-  }
+let copernicusToken = null;
+let tokenExpiry     = 0;
+const COP_TOKEN_KEY = 'qttb_cop_token';
 
-  // Verify token works against Sentinel Hub catalog (CORS-safe endpoint)
-  try {
-    const ctrl = new AbortController();
-    setTimeout(() => ctrl.abort(), 6000);
-    const resp = await fetch('https://sh.dataspace.copernicus.eu/api/v1/catalog/1.0.0/collections', {
-      headers: { 'Authorization': 'Bearer ' + token }, signal: ctrl.signal
-    });
-    statusEl.textContent = (resp.ok || resp.status === 401)
-      ? '✓ Connected — click Fetch indices for current GPS'
-      : '✓ Token obtained — click Fetch indices';
-    statusEl.style.color = '#2B5F3F';
-  } catch(e) {
-    statusEl.textContent = '✓ Token ready — click Fetch indices';
-    statusEl.style.color = '#2B5F3F';
-  }
+// Default QTTB project credentials
+const DEFAULT_COP_ID     = 'sh-1ae15660-5ca2-4ad0-af22-4fd409efe6f0';
+const DEFAULT_COP_SECRET = 'kWgaCfZsP9dJdw7Jae3xqO6wRD5naNhc';
+
+
+function updateCurlCommand() {
+  const idEl  = document.getElementById('cop_client_id');
+  const secEl = document.getElementById('cop_client_secret');
+  const id  = idEl?.value.trim()  || DEFAULT_COP_ID;
+  const sec = secEl?.value.trim() || DEFAULT_COP_SECRET;
+  const cmd = `curl -s -X POST "${CDSE_TOKEN_URL}" \\
+  -H "Content-Type: application/x-www-form-urlencoded" \\
+  -d "grant_type=client_credentials&client_id=${id}&client_secret=${sec}" \\
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])"`;
+  const el = document.getElementById('curl-cmd-display');
+  if(el) el.textContent = cmd;
 }
 
 function updateCopernicusStatus() {
-  const hasId = document.getElementById('cop_client_id').value.trim();
-  const hasSecret = document.getElementById('cop_client_secret').value.trim();
-  const el = document.getElementById('cop-api-status');
-  if(hasId && hasSecret) {
-    el.textContent = 'Credentials entered — click Test';
-    el.style.color = '#B8720A';
-  } else {
-    el.textContent = 'Not configured';
-    el.style.color = '#6B6860';
-  }
+  updateCurlCommand();
+  saveCopernicusCredentials();
 }
 
+function saveCopernicusCredentials() {
+  const id  = document.getElementById('cop_client_id')?.value.trim();
+  const sec = document.getElementById('cop_client_secret')?.value.trim();
+  if(id && sec) localStorage.setItem('qttb_cop_creds', JSON.stringify({ clientId:id, clientSecret:sec }));
+}
+
+function copyCurl() {
+  const el = document.getElementById('curl-cmd-display');
+  if(!el) return;
+  // Clean backslash-newlines for actual terminal use
+  const cmd = el.textContent.replace(/\\\\/g,'\\').replace(/\n/g,' ');
+  navigator.clipboard?.writeText(el.textContent).then(() => {
+    const s = document.getElementById('curl-copy-status');
+    if(s) { s.textContent = '✓ Copied!'; setTimeout(()=>s.textContent='',2000); }
+  }).catch(() => {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = el.textContent;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    const s = document.getElementById('curl-copy-status');
+    if(s) { s.textContent = '✓ Copied!'; setTimeout(()=>s.textContent='',2000); }
+  });
+}
+
+function onTokenPaste(val) {
+  val = val.trim();
+  if(!val || !val.startsWith('eyJ')) return;
+  // Decode expiry from JWT payload
+  let expiry = Date.now() + 3600000;
+  try { const p=JSON.parse(atob(val.split('.')[1])); if(p.exp) expiry=p.exp*1000; } catch(e){}
+  copernicusToken = val;
+  tokenExpiry     = expiry;
+  localStorage.setItem(COP_TOKEN_KEY, JSON.stringify({ token:val, expiry }));
+  const el = document.getElementById('cop-api-status');
+  if(el) { el.textContent='✓ Token saved ('+Math.round((expiry-Date.now())/60000)+' min) — click Fetch'; el.style.color='#2B5F3F'; }
+}
+
+// testCopernicusAPI — no longer tries to get token from browser
+// Just checks if a token is available and valid
+async function testCopernicusAPI() {
+  const statusEl = document.getElementById('cop-api-status');
+  saveCopernicusCredentials();
+  updateCurlCommand();
+
+  // Check for pasted/cached token
+  const pastedToken = document.getElementById('cop-manual-token')?.value.trim();
+  if(pastedToken && pastedToken.startsWith('eyJ') && !pastedToken.includes('…')) {
+    onTokenPaste(pastedToken);
+    return;
+  }
+  if(copernicusToken && Date.now() < tokenExpiry) {
+    statusEl.textContent = '✓ Token valid (' + Math.round((tokenExpiry-Date.now())/60000) + ' min) — ready to fetch';
+    statusEl.style.color = '#2B5F3F';
+    return;
+  }
+
+  // Try via Supabase proxy (server-side, no CORS issue)
+  const cfg = getDbConfig();
+  if(cfg) {
+    statusEl.textContent = '⟳ Getting token via Supabase proxy…';
+    statusEl.style.color = '#B8720A';
+    try {
+      const id  = document.getElementById('cop_client_id').value.trim()  || DEFAULT_COP_ID;
+      const sec = document.getElementById('cop_client_secret').value.trim() || DEFAULT_COP_SECRET;
+      const resp = await fetch(`${cfg.url}/functions/v1/copernicus-proxy`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json','apikey':cfg.key,'Authorization':'Bearer '+cfg.key},
+        body: JSON.stringify({action:'get_token',clientId:id,clientSecret:sec})
+      });
+      if(resp.ok) {
+        const data = await resp.json();
+        if(data.access_token) {
+          const expiry = Date.now() + (data.expires_in-60)*1000;
+          copernicusToken = data.access_token;
+          tokenExpiry     = expiry;
+          localStorage.setItem(COP_TOKEN_KEY, JSON.stringify({token:copernicusToken,expiry}));
+          statusEl.textContent = '✓ Token via proxy — ready to fetch indices';
+          statusEl.style.color = '#2B5F3F';
+          return;
+        }
+      }
+    } catch(e) { /* proxy not deployed — fall through */ }
+  }
+
+  // No proxy, no cached token — show curl instructions
+  statusEl.textContent = 'Run the curl command above, paste the token in Step 2';
+  statusEl.style.color = '#B8720A';
+}
+
+
 async function fetchCopernicus() {
-  const lat = parseFloat(document.getElementById('gps_n').value);
-  const lng = parseFloat(document.getElementById('gps_e').value);
-  const statusEl = document.getElementById('copernicus-status');
+  const lat      = parseFloat(document.getElementById('gps_n').value);
+  const lng      = parseFloat(document.getElementById('gps_e').value);
+  const statusEl = document.getElementById('cop-fetch-status') || document.getElementById('cop-api-status');
 
   if(!lat || !lng || isNaN(lat) || isNaN(lng)) {
-    statusEl.textContent = 'Enter GPS first — click a location button';
+    statusEl.textContent = 'Enter GPS first — click a location button on the first tab';
     statusEl.style.color = '#C0392B';
     return;
   }
 
-  statusEl.textContent = '⟳ Getting token…';
-  statusEl.style.color = '#B8720A';
+  // Get token — from paste box, cache, or proxy
+  let token = copernicusToken && Date.now() < tokenExpiry ? copernicusToken : null;
 
-  const token = await getCopernicusToken();
+  // Check paste box for fresh token
+  const pastedRaw = document.getElementById('cop-manual-token')?.value.trim();
+  if(pastedRaw && pastedRaw.startsWith('eyJ') && !pastedRaw.includes('…')) {
+    onTokenPaste(pastedRaw);
+    token = copernicusToken;
+  }
+
+  // Try Supabase proxy for token if not available
   if(!token) {
-    // Try open land service as fallback
-    await fetchOpenCopernicusProducts(lat, lng, statusEl);
+    const cfg = getDbConfig();
+    if(cfg) {
+      statusEl.textContent = '⟳ Getting token via proxy…'; statusEl.style.color='#B8720A';
+      try {
+        const id  = document.getElementById('cop_client_id')?.value.trim()  || DEFAULT_COP_ID;
+        const sec = document.getElementById('cop_client_secret')?.value.trim() || DEFAULT_COP_SECRET;
+        const resp = await fetch(`${cfg.url}/functions/v1/copernicus-proxy`, {
+          method:'POST',
+          headers:{'Content-Type':'application/json','apikey':cfg.key,'Authorization':'Bearer '+cfg.key},
+          body:JSON.stringify({action:'get_token',clientId:id,clientSecret:sec})
+        });
+        if(resp.ok) {
+          const data = await resp.json();
+          if(data.access_token) {
+            token = data.access_token;
+            const expiry = Date.now()+(data.expires_in-60)*1000;
+            copernicusToken=token; tokenExpiry=expiry;
+            localStorage.setItem(COP_TOKEN_KEY,JSON.stringify({token,expiry}));
+          }
+        }
+      } catch(e) { /* proxy not available */ }
+    }
+  }
+
+  if(!token) {
+    statusEl.textContent = 'No token — paste the curl output in Step 2 above';
+    statusEl.style.color = '#C0392B';
     return;
   }
 
   statusEl.textContent = `⟳ Fetching Sentinel-2 for ${lat.toFixed(4)}°N ${lng.toFixed(4)}°E…`;
+  statusEl.style.color = '#B8720A';
 
-  // ── Use Supabase proxy if available (avoids any CORS issues) ────────────────
-  const cfg = getDbConfig();
-  const proxy = cfg ? `${cfg.url}/functions/v1/copernicus-proxy` : null;
+  // Build geometry
+  const d = 0.005;
+  const polygon = {type:'Polygon',coordinates:[[[lng-d,lat-d],[lng+d,lat-d],[lng+d,lat+d],[lng-d,lat+d],[lng-d,lat-d]]]};
+  const from = new Date(Date.now()-45*24*3600*1000).toISOString().slice(0,10)+'T00:00:00Z';
+  const to   = new Date().toISOString().slice(0,10)+'T23:59:59Z';
 
-  const d = 0.005; // ±500m box
-  const from = new Date(Date.now() - 45*24*3600*1000).toISOString().slice(0,10) + 'T00:00:00Z';
-  const to   = new Date().toISOString().slice(0,10) + 'T23:59:59Z';
+  const evalscript = `//VERSION=3
+function setup(){return{input:[{bands:["B04","B08","B11"],units:"REFLECTANCE"}],output:[{id:"ndvi",bands:1},{id:"evi",bands:1},{id:"ndwi",bands:1}],mosaicking:Mosaicking.ORBIT};}
+function evaluatePixel(s){const b=s[0];const nv=(b.B08-b.B04)/(b.B08+b.B04+0.0001);const ev=2.5*(b.B08-b.B04)/(b.B08+6*b.B04-7.5*0.0001+1);const nw=(b.B08-b.B11)/(b.B08+b.B11+0.0001);return{ndvi:[nv],evi:[ev],ndwi:[nw]};}`;
+
+  const payload = {
+    input:{
+      bounds:{geometry:polygon,properties:{crs:'http://www.opengis.net/def/crs/OGC/1.3/CRS84'}},
+      data:[{type:'sentinel-2-l2a',dataFilter:{timeRange:{from,to},maxCloudCoverage:60}}]
+    },
+    aggregation:{timeRange:{from,to},aggregationInterval:{of:'P30D'},evalscript,resx:0.0001,resy:0.0001},
+    calculations:{default:{}}
+  };
 
   try {
-    let ndvi, evi, ndwi, dateStr;
+    // Try via proxy first if available
+    const cfg = getDbConfig();
+    const proxy = cfg ? `${cfg.url}/functions/v1/copernicus-proxy` : null;
+    let ndvi=null, evi=null, ndwi=null, dateStr=null;
 
     if(proxy) {
-      // ── Via proxy: handles auth + CORS server-side ──────────────────────────
-      const resp = await fetch(proxy, {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json','apikey':cfg.key,'Authorization':'Bearer '+cfg.key },
-        body: JSON.stringify({ action:'fetch_indices', token, lat, lng, fromDate:from, toDate:to })
-      });
-      if(!resp.ok) throw new Error('Proxy ' + resp.status);
-      const result = await resp.json();
-      if(result.error) throw new Error(result.error);
-      ndvi = result.ndvi; evi = result.evi; ndwi = result.ndwi; dateStr = result.date;
-
-    } else {
-      // ── Direct call — Statistical API allows CORS with valid Bearer token ───
-      const STATS_URL = 'https://sh.dataspace.copernicus.eu/api/v1/statistics';
-      const evalscript = `//VERSION=3
-function setup(){return{input:[{bands:["B04","B08","B11"],units:"REFLECTANCE"}],output:[{id:"ndvi",bands:1},{id:"evi",bands:1},{id:"ndwi",bands:1}],mosaicking:Mosaicking.ORBIT};}
-function evaluatePixel(s){const b=s[0];const n=(b.B08-b.B04)/(b.B08+b.B04+0.0001);const e=2.5*(b.B08-b.B04)/(b.B08+6*b.B04-7.5*0.0001+1);const w=(b.B08-b.B11)/(b.B08+b.B11+0.0001);return{ndvi:[n],evi:[e],ndwi:[w]};}`;
-
-      const polygon = {type:'Polygon',coordinates:[[[lng-d,lat-d],[lng+d,lat-d],[lng+d,lat+d],[lng-d,lat+d],[lng-d,lat-d]]]};
-      const resp = await fetch(STATS_URL, {
-        method: 'POST',
-        headers: { 'Authorization':'Bearer '+token,'Content-Type':'application/json','Accept':'application/json' },
-        body: JSON.stringify({
-          input:{
-            bounds:{ geometry:polygon, properties:{crs:'http://www.opengis.net/def/crs/OGC/1.3/CRS84'} },
-            data:[{type:'sentinel-2-l2a',dataFilter:{timeRange:{from,to},maxCloudCoverage:50}}]
-          },
-          aggregation:{
-            timeRange:{from,to},
-            aggregationInterval:{of:'P30D'},
-            evalscript,
-            resx:0.0001,resy:0.0001
-          },
-          calculations:{default:{}}
-        })
-      });
-      if(!resp.ok) {
-        const txt = await resp.text();
-        throw new Error(`Stats API ${resp.status}: ${txt.slice(0,100)}`);
+      const resp = await fetchSafe(proxy, {
+        method:'POST',
+        headers:{'Content-Type':'application/json','apikey':cfg.key,'Authorization':'Bearer '+cfg.key},
+        body:JSON.stringify({action:'fetch_indices',token,lat,lng,fromDate:from,toDate:to})
+      }, 15000);
+      if(resp.ok) {
+        const result = await resp.json();
+        if(!result.error) { ndvi=result.ndvi; evi=result.evi; ndwi=result.ndwi; dateStr=result.date; }
       }
+    }
+
+    // If proxy not available or returned nothing, call Statistics API directly
+    // The Statistics API DOES allow CORS from browsers with a valid Bearer token
+    if(ndvi === null) {
+      const resp = await fetchSafe(CDSE_STATS_URL, {
+        method:'POST',
+        headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json','Accept':'application/json'},
+        body:JSON.stringify(payload)
+      }, 15000);
+      if(!resp.ok) throw new Error('Statistics API ' + resp.status + ' — ' + await resp.text().then(t=>t.slice(0,80)));
       const data = await resp.json();
-      if(data.data && data.data.length > 0) {
+      if(data.data?.length) {
         const interval = data.data[data.data.length-1];
-        const out = interval.outputs || {};
-        ndvi = out.ndvi?.bands?.B0?.stats?.mean ?? null;
-        evi  = out.evi?.bands?.B0?.stats?.mean  ?? null;
-        ndwi = out.ndwi?.bands?.B0?.stats?.mean ?? null;
+        const out = interval.outputs||{};
+        ndvi    = out.ndvi?.bands?.B0?.stats?.mean ?? null;
+        evi     = out.evi?.bands?.B0?.stats?.mean  ?? null;
+        ndwi    = out.ndwi?.bands?.B0?.stats?.mean ?? null;
         dateStr = interval.interval?.from?.slice(0,10);
       }
     }
 
-    // ── Fill form fields ─────────────────────────────────────────────────────
-    if(ndvi !== null && ndvi !== undefined) {
-      const v = Math.max(-1, Math.min(1, ndvi));
+    // Fill fields
+    if(ndvi !== null) {
+      const v = Math.max(-1,Math.min(1,ndvi));
       setApiField('ndvi', v.toFixed(3));
-      const stress = v>0.6?'none':v>0.45?'low':v>0.3?'medium':v>0.15?'high':'severe';
-      setApiField('water_stress_class', stress);
+      setApiField('water_stress_class', v>0.6?'none':v>0.45?'low':v>0.3?'medium':v>0.15?'high':'severe');
     }
-    if(evi  !== null && evi  !== undefined) setApiField('evi',  Math.max(-1,Math.min(1,evi)).toFixed(3));
-    if(ndwi !== null && ndwi !== undefined) setApiField('ndwi', Math.max(-1,Math.min(1,ndwi)).toFixed(3));
-    setApiField('meteo_source', 'copernicus');
+    if(evi  !== null) setApiField('evi',  Math.max(-1,Math.min(1,evi)).toFixed(3));
+    if(ndwi !== null) setApiField('ndwi', Math.max(-1,Math.min(1,ndwi)).toFixed(3));
+    setApiField('meteo_source','copernicus');
 
-    const ndviStr = ndvi!=null ? parseFloat(ndvi).toFixed(2) : '—';
-    const eviStr  = evi !=null ? parseFloat(evi).toFixed(2)  : '—';
-    const ndwiStr = ndwi!=null ? parseFloat(ndwi).toFixed(2) : '—';
-
-    if(ndvi === null && evi === null) {
-      statusEl.textContent = 'No Sentinel-2 data (cloud cover > 50%?) — try a wider date range';
+    if(ndvi===null && evi===null) {
+      statusEl.textContent = 'No Sentinel-2 data for last 45 days (cloud cover > 60%?) — try again later';
       statusEl.style.color = '#B8720A';
     } else {
-      statusEl.textContent = `✓ NDVI:${ndviStr}  EVI:${eviStr}  NDWI:${ndwiStr}${dateStr?' (S-2, '+dateStr+')':''}`;
+      statusEl.textContent = `✓ NDVI:${ndvi!=null?parseFloat(ndvi).toFixed(3):'—'}  EVI:${evi!=null?parseFloat(evi).toFixed(3):'—'}  NDWI:${ndwi!=null?parseFloat(ndwi).toFixed(3):'—'}${dateStr?' ('+dateStr+')':''}`;
       statusEl.style.color = '#2B5F3F';
     }
-
-    // Bonus: try Sentinel-1 soil moisture
-    await fetchSentinel1SoilMoisture(lat, lng, token, proxy, cfg);
-
   } catch(e) {
-    console.error('Copernicus fetch error:', e);
-    statusEl.textContent = '✗ ' + e.message.slice(0,100);
+    const msg = e.message || '';
+    if(msg.includes('fetch') || msg.includes('Failed') || msg.includes('NetworkError') || msg.includes('CORS')) {
+      statusEl.textContent = '✗ Statistics API blocked from browser. Deploy copernicus-proxy Edge Function in Supabase, or paste a token from curl above.';
+      const fb = document.getElementById('cop-cors-fallback');
+      if(fb) { fb.style.display='block'; updateCurlCommand(); }
+    } else {
+      statusEl.textContent = '✗ ' + msg.slice(0,120);
+    }
     statusEl.style.color = '#C0392B';
+    setCopStatus('✗ Failed — check token', '#C0392B');
   }
 }
 
 
 async function fetchSentinel1SoilMoisture(lat, lng, token, proxy, cfg) {
+  // Sentinel-1 soil moisture — future implementation
+  // Currently skipped to avoid CDSE_PROCESS_URL dependency
+  return;
   const bbox = [lng-0.005, lat-0.005, lng+0.005, lat+0.005];
   const evalscript_s1 = `//VERSION=3
 function setup() { return { input: ['VV','VH','dataMask'], output: { bands: 3 } }; }
