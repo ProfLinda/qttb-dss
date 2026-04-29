@@ -2084,19 +2084,39 @@ async function fetchASIG() {
   }
 
 
-  // Fill horizon rows from local data
+  // Fill horizon rows — LOCAL_DATA uses short keys: h,d,t,c,mo,tx,mm,at,st,sf,tc
   if(matchedLocal && matchedLocal[1].horizons) {
     matchedLocal[1].horizons.forEach((hz, i) => {
       if(i >= 5) return;
-      const s = (col, val) => { const el = document.getElementById('h'+i+'_'+col); if(el) el.value = val||''; };
-      s('horizon', hz.label); s('depth', hz.depth); s('thick', hz.thick);
-      s('colour', hz.colour); s('mot_o', hz.mot_o||''); s('mot_d', hz.mot_d||'');
-      s('texture', hz.texture); s('taw_grp', hz.taw_grp);
-      s('taw_mm', hz.taw_mm); s('consist', hz.consist||'');
-      s('ataw', hz.ataw); s('stones', hz.stones||'0');
-      s('stone_free', hz.stone_free||'100'); s('taw_cols', hz.taw_cols||'');
+      const setVal = (id, val) => {
+        if(val === undefined || val === null) return;
+        const el = document.getElementById('h' + i + '_' + id);
+        if(!el) return;
+        if(el.tagName === 'SELECT') {
+          // Match option by value code (e.g. 'CL') or full text
+          for(const opt of el.options) {
+            if(opt.value === String(val) || opt.text.startsWith(String(val))) {
+              el.value = opt.value; break;
+            }
+          }
+        } else {
+          el.value = val;
+        }
+        el.style.borderColor = '#2B5F3F';
+        el.style.background  = '#E8F2EC';
+      };
+      setVal('horizon',    hz.h);
+      setVal('depth',      hz.d);
+      setVal('thick',      hz.t);
+      setVal('colour',     hz.c);
+      setVal('texture',    hz.tx);
+      setVal('taw_mm',     hz.mm);
+      setVal('ataw',       hz.at);
+      setVal('stones',     hz.st || '0');
+      setVal('stone_free', hz.sf || '100');
+      setVal('taw_cols',   hz.tc);
     });
-    filledFields.push('Soil horizons ('+matchedLocal[1].horizons.length+')');
+    filledFields.push('Horizons (' + matchedLocal[1].horizons.length + ')');
     updateProgress();
   }
 
@@ -2466,9 +2486,24 @@ async function fetchCopernicus() {
   const from = new Date(Date.now()-45*24*3600*1000).toISOString().slice(0,10)+'T00:00:00Z';
   const to   = new Date().toISOString().slice(0,10)+'T23:59:59Z';
 
+  // Statistical API evalscript — NO dataMask, uses mean sample approach
   const evalscript = `//VERSION=3
-function setup(){return{input:[{bands:["B04","B08","B11"],units:"REFLECTANCE"}],output:[{id:"ndvi",bands:1},{id:"evi",bands:1},{id:"ndwi",bands:1}],mosaicking:Mosaicking.ORBIT};}
-function evaluatePixel(s){const b=s[0];const nv=(b.B08-b.B04)/(b.B08+b.B04+0.0001);const ev=2.5*(b.B08-b.B04)/(b.B08+6*b.B04-7.5*0.0001+1);const nw=(b.B08-b.B11)/(b.B08+b.B11+0.0001);return{ndvi:[nv],evi:[ev],ndwi:[nw]};}`;
+function setup() {
+  return {
+    input: [{ bands: ["B04", "B08", "B11"] }],
+    output: [
+      { id: "ndvi", bands: 1, sampleType: "FLOAT32" },
+      { id: "evi",  bands: 1, sampleType: "FLOAT32" },
+      { id: "ndwi", bands: 1, sampleType: "FLOAT32" }
+    ]
+  };
+}
+function evaluatePixel(sample) {
+  var ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04 + 0.0001);
+  var evi  = 2.5 * (sample.B08 - sample.B04) / (sample.B08 + 6 * sample.B04 - 7.5 * 0.0001 + 1);
+  var ndwi = (sample.B08 - sample.B11) / (sample.B08 + sample.B11 + 0.0001);
+  return { ndvi: [ndvi], evi: [evi], ndwi: [ndwi] };
+}`;
 
   const payload = {
     input:{
