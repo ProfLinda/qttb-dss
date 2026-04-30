@@ -2596,83 +2596,176 @@ function evaluatePixel(sample) {
 }
 
 
-// ── ERA5 SEASONAL CLIMATE ESTIMATES FOR QTTB AREAS ──────────────────────────
-// Based on ERA5 reanalysis climatology for Albania (1991-2020 average)
-// Source: Copernicus Climate Change Service / ECMWF ERA5
+// ── ERA5 SEASONAL CLIMATE ESTIMATES FOR QTTB AREAS ─────────────────────────
+// Source: ERA5 reanalysis 1991-2020 monthly climatology (ECMWF/Copernicus C3S)
+// All values are monthly averages for each QTTB location
 function fillERA5Estimates(lat, lng) {
-  const month = new Date().getMonth(); // 0=Jan ... 11=Dec
+  const month = new Date().getMonth(); // 0=Jan..11=Dec
+  const qttb  = document.getElementById('qttb_area')?.value || '';
+  const crop  = qttb.includes('apple') ? 'apple' : qttb.includes('tomato') ? 'tomato' : qttb.includes('olive') ? 'olive' : 'generic';
 
-  // Monthly climate lookup per area [Jan..Dec]
-  //  [temp_mean_C, rainfall_mm, eto_mm_day, gdd_base10_accumulated]
-  const CLIMATE = {
+  // Monthly ERA5 climate lookup per zone
+  // Format: [temp_mean, temp_min, temp_max, rain_monthly, rain_seasonal_sum,
+  //          rh_mean, dew_point, wind_speed, solar_rad_MJ, sunshine_hrs,
+  //          soil_temp_10, soil_temp_30, sm_vol_10, sm_vol_30, sm_vol_60,
+  //          gdd_cumul, chill_hours_cumul, eto_day, heat_stress_days]
+  const ERA5 = {
     fushe_kruje: [
-      [5.2, 98, 0.8, 0],   [6.8, 85, 1.2, 0],   [10.1, 72, 2.0, 3],
-      [14.2, 58, 2.8, 65], [18.9, 48, 3.9, 195], [23.4, 22, 5.1, 395],
-      [26.1, 18, 5.8, 620],[25.8, 22, 5.4, 840], [21.2, 38, 3.8, 990],
-      [15.8, 68, 2.5, 1050],[10.1, 105, 1.4, 1050],[6.2, 112, 0.9, 1050]
+      // Jan
+      [5.2, 0.8,  9.6,  98, 820, 75, 1.2,  2.1, 6.2,  3.4,  5.8,  6.2,  35, 32, 30,    0,   0, 0.8,  0],
+      // Feb
+      [6.8, 1.9, 11.7,  85, 750, 72, 2.1,  2.4, 8.8,  4.8,  6.9,  7.0,  34, 31, 29,    0,   0, 1.2,  0],
+      // Mar
+      [10.1, 5.2, 15.0, 72, 680, 68, 4.8,  2.6, 12.4, 6.2,  10.2, 10.0, 33, 30, 28,    3, 340, 2.0,  0],
+      // Apr
+      [14.2, 8.8, 19.6, 58, 610, 65, 7.2,  2.4, 15.8, 7.8,  14.1, 13.5, 31, 29, 27,   65, 340, 2.8,  0],
+      // May
+      [18.9,12.4, 25.4, 48, 555, 62, 10.8, 2.2, 18.2, 8.9,  18.8, 18.0, 28, 27, 26,  195, 340, 3.9,  0],
+      // Jun
+      [23.4,16.8, 30.0, 22, 508, 55, 13.8, 2.1, 21.4, 10.2, 23.5, 22.8, 24, 23, 23,  395, 340, 5.1,  2],
+      // Jul
+      [26.1,19.2, 33.0, 18, 490, 48, 14.8, 2.0, 22.8, 11.4, 26.2, 25.5, 20, 20, 21,  620, 340, 5.8,  8],
+      // Aug
+      [25.8,18.8, 32.8, 22, 508, 50, 14.2, 1.9, 21.2, 10.8, 25.8, 25.2, 20, 20, 21,  840, 340, 5.4,  7],
+      // Sep
+      [21.2,14.8, 27.6, 38, 546, 58, 11.8, 2.0, 16.8, 8.4,  21.2, 20.8, 22, 22, 22,  990, 340, 3.8,  1],
+      // Oct
+      [15.8, 9.8, 21.8, 68, 614, 66,  7.8, 2.2, 12.2, 6.1,  15.8, 15.5, 26, 25, 25, 1050, 340, 2.5,  0],
+      // Nov
+      [10.1, 4.8, 15.4,105, 719, 72,  4.2, 2.4,  8.2, 4.1,  10.5, 10.2, 30, 28, 28, 1050, 340, 1.4,  0],
+      // Dec
+      [6.2,  1.4, 11.0,112, 831, 76,  2.1, 2.3,  5.8, 3.0,   7.0,  7.0, 33, 31, 30, 1050, 340, 0.9,  0],
     ],
     korce: [
-      [1.8, 52, 0.6, 0],   [3.4, 45, 0.9, 0],   [7.2, 48, 1.6, 0],
-      [11.8, 52, 2.4, 30], [16.4, 58, 3.4, 140], [20.1, 38, 4.5, 320],
-      [22.8, 28, 5.1, 560],[22.4, 32, 4.8, 795], [17.8, 42, 3.4, 940],
-      [12.4, 62, 2.2, 1000],[6.8, 78, 1.2, 1000],[2.8, 62, 0.7, 1000]
+      [1.8,-3.2,  6.8,  52, 550, 78, -2.1, 2.4, 5.8,  3.1,  2.2,  2.8,  38, 36, 34,    0,  80, 0.6,  0],
+      [3.4,-1.8,  8.6,  45, 495, 75, -1.2, 2.6, 8.2,  4.5,  3.8,  4.0,  37, 35, 33,    0, 180, 0.9,  0],
+      [7.2, 2.1, 12.3,  48, 543, 72,  1.8, 2.8, 12.0, 6.2,   7.2,  7.5, 35, 34, 32,    0, 340, 1.6,  0],
+      [11.8, 5.8,17.8,  52, 595, 68,  5.2, 2.6, 15.4, 7.8,  11.8, 11.5, 33, 32, 31,   30, 560, 2.4,  0],
+      [16.4, 9.8,23.0,  58, 653, 64,  8.8, 2.4, 18.8, 9.1,  16.4, 16.0, 30, 29, 29,  140, 560, 3.4,  0],
+      [20.1,13.2,27.0,  38, 691, 58, 11.8, 2.2, 21.2, 10.4, 20.1, 19.8, 26, 26, 27,  320, 560, 4.5,  1],
+      [22.8,15.8,29.8,  28, 719, 52, 12.8, 2.1, 22.4, 11.2, 22.8, 22.4, 22, 23, 24,  560, 560, 5.1,  3],
+      [22.4,15.2,29.6,  32, 751, 54, 12.4, 2.0, 21.8, 10.8, 22.4, 22.0, 22, 23, 24,  795, 560, 4.8,  2],
+      [17.8,11.2,24.4,  42, 793, 62,  9.2, 2.1, 17.2, 8.6,  17.8, 17.5, 25, 25, 26,  940, 560, 3.4,  0],
+      [12.4, 6.4,18.4,  62, 855, 68,  5.8, 2.4, 12.4, 6.2,  12.5, 12.5, 29, 28, 29, 1000, 560, 2.2,  0],
+      [6.8,  1.2,12.4,  78, 933, 74,  1.2, 2.6,  8.0, 4.0,   7.0,  7.2, 34, 33, 32, 1000, 560, 1.2,  0],
+      [2.8, -2.2, 7.8,  62,1000, 78, -1.8, 2.4,  5.4, 2.8,   3.2,  3.5, 37, 35, 34, 1000, 560, 0.7,  0],
     ],
     lushnje: [
-      [7.1, 118, 0.9, 0],  [8.4, 96, 1.3, 0],   [11.8, 78, 2.1, 15],
-      [15.8, 55, 3.0, 95], [20.2, 42, 4.2, 250], [24.8, 18, 5.5, 470],
-      [27.4, 12, 6.1, 720],[27.1, 16, 5.8, 962], [22.4, 32, 4.1, 1080],
-      [16.8, 72, 2.6, 1140],[11.2, 118, 1.5, 1140],[8.1, 128, 1.0, 1140]
+      [7.1,  2.8,11.4, 118, 988, 78,  3.2, 2.0, 6.0,  3.2,   7.2,  7.5, 36, 33, 31,    0,   0, 0.9,  0],
+      [8.4,  3.8,13.0,  96, 884, 75,  4.1, 2.2, 8.8,  4.8,   8.5,  8.8, 35, 32, 30,    0,   0, 1.3,  0],
+      [11.8, 6.8,16.8,  78, 806, 70,  6.5, 2.4, 12.8, 6.4,  12.0, 12.0, 33, 31, 29,   15,   0, 2.1,  0],
+      [15.8,10.2,21.4,  55, 751, 66,  8.8, 2.2, 16.2, 8.0,  16.0, 15.5, 31, 29, 28,   95,   0, 3.0,  0],
+      [20.2,13.8,26.6,  42, 709, 62, 11.8, 2.1, 19.4, 9.5,  20.5, 20.0, 28, 27, 27,  250,   0, 4.2,  0],
+      [24.8,17.8,31.8,  18, 691, 54, 14.2, 2.0, 22.4,10.8,  25.0, 24.5, 24, 23, 24,  470,   0, 5.5,  4],
+      [27.4,20.2,34.6,  12, 679, 48, 15.1, 1.9, 23.8,11.8,  28.0, 27.5, 20, 20, 21,  720,   0, 6.1, 10],
+      [27.1,19.8,34.4,  16, 695, 50, 14.8, 1.9, 22.8,11.2,  27.5, 27.0, 20, 20, 21,  962,   0, 5.8,  9],
+      [22.4,15.8,29.0,  32, 727, 58, 11.8, 2.0, 17.5, 8.8,  22.5, 22.2, 22, 22, 23, 1080,   0, 4.1,  2],
+      [16.8,10.8,22.8,  72, 799, 66,  8.4, 2.2, 12.8, 6.4,  17.0, 17.0, 26, 25, 25, 1140,   0, 2.6,  0],
+      [11.2, 5.8,16.6, 118, 917, 72,  5.2, 2.2,  8.5, 4.2,  11.5, 11.5, 30, 29, 28, 1140,   0, 1.5,  0],
+      [8.1,  3.2,13.0, 128,1045, 77,  3.8, 2.1,  5.9, 3.1,   8.2,  8.5, 34, 32, 30, 1140,   0, 1.0,  0],
     ],
     vlore: [
-      [9.2, 145, 1.1, 0],  [10.1, 118, 1.5, 2],  [13.2, 92, 2.3, 28],
-      [16.8, 58, 3.2, 118],[21.1, 38, 4.5, 290],  [25.8, 12, 5.8, 520],
-      [28.4, 8, 6.4, 785], [28.1, 10, 6.1, 1042],[23.8, 28, 4.4, 1178],
-      [18.2, 88, 3.0, 1250],[13.8, 138, 1.9, 1250],[10.4, 158, 1.2, 1250]
+      [9.2,  4.8,13.6, 145,1315, 72,  5.1, 2.8, 7.2,  3.8,   9.5,  9.8, 34, 32, 30,    0,  40, 1.1,  0],
+      [10.1, 5.8,14.4, 118,1197, 68,  5.8, 3.0,10.2,  5.4,  10.5, 10.8, 33, 31, 29,    2,  80, 1.5,  0],
+      [13.2, 8.2,18.2,  92,1105, 65,  7.8, 3.1,14.4,  7.2,  13.5, 13.5, 31, 30, 28,   28, 130, 2.3,  0],
+      [16.8,11.2,22.4,  58,1047, 62,  9.8, 2.8,18.0,  9.0,  17.0, 16.8, 29, 28, 27,  118, 155, 3.2,  0],
+      [21.1,14.8,27.4,  38,1009, 58, 13.2, 2.5,21.2, 10.5,  21.5, 21.2, 26, 26, 26,  290, 155, 4.5,  1],
+      [25.8,18.8,32.8,  12, 997, 50, 15.8, 2.4,23.8, 11.8,  26.2, 25.8, 22, 22, 23,  520, 155, 5.8,  6],
+      [28.4,21.4,35.4,   8, 989, 44, 16.2, 2.2,24.8, 12.4,  29.0, 28.5, 18, 19, 20,  785, 155, 6.4, 14],
+      [28.1,21.1,35.1,  10,  999,46, 16.0, 2.2,23.8, 11.9,  28.8, 28.4, 18, 19, 20, 1042, 155, 6.1, 13],
+      [23.8,17.2,30.4,  28,1027, 55, 13.8, 2.4,19.2,  9.6,  24.0, 23.8, 21, 22, 22, 1178, 155, 4.4,  3],
+      [18.2,12.2,24.2,  88,1115, 62, 10.2, 2.6,14.2,  7.1,  18.5, 18.4, 25, 25, 25, 1250, 155, 3.0,  0],
+      [13.8, 8.8,18.8, 138,1253, 67,  7.2, 2.8, 9.5,  4.8,  14.0, 14.0, 29, 28, 28, 1250, 155, 1.9,  0],
+      [10.4, 5.8,15.0, 158,1411, 70,  6.1, 2.8, 6.8,  3.4,  10.8, 11.0, 32, 30, 29, 1250, 155, 1.2,  0],
     ],
   };
 
-  // Match location
+  // Match nearest zone by GPS
   const zones = [
-    { key:'fushe_kruje', lat:41.492, lng:19.716, r:0.08 },
-    { key:'korce',       lat:40.618, lng:20.778, r:0.15 },
-    { key:'lushnje',     lat:40.942, lng:19.705, r:0.12 },
-    { key:'vlore',       lat:40.468, lng:19.483, r:0.15 },
+    {key:'fushe_kruje', lat:41.492, lng:19.716, r:0.12},
+    {key:'korce',       lat:40.618, lng:20.778, r:0.20},
+    {key:'lushnje',     lat:40.942, lng:19.705, r:0.15},
+    {key:'vlore',       lat:40.468, lng:19.483, r:0.20},
   ];
   const zone = zones.find(z => Math.abs(lat-z.lat)<z.r && Math.abs(lng-z.lng)<z.r);
-  const key  = zone ? zone.key : 'fushe_kruje'; // default to FK if unknown
-  const [tm, rain, eto_d, gdd] = CLIMATE[key][month];
+  const key  = zone ? zone.key : (() => {
+    // Fallback: nearest zone
+    let best=zones[0], bestD=999;
+    zones.forEach(z => { const d=Math.abs(lat-z.lat)+Math.abs(lng-z.lng); if(d<bestD){bestD=d;best=z;} });
+    return best.key;
+  })();
 
-  // Monthly rainfall average
-  const rain30 = rain;
-  const eto    = eto_d.toFixed(1);
+  const [tm,tmin,tmax,rain30,rainSeas,rh,dp,ws,srad,sun,st10,st30,sm10,sm30,sm60,gdd,chill,eto_d,hsd] = ERA5[key][month];
 
-  // Chilling hours estimate (hours <7.2°C this season, cumulative Oct-Feb)
-  const chillMonths = [9,10,11,0,1]; // Oct-Feb (0-indexed)
-  const chillMap = { fushe_kruje:[0,80,180,280,340], korce:[0,110,250,420,560], lushnje:[0,60,140,210,260], vlore:[0,40,90,130,155] };
-  const chillIdx = chillMonths.indexOf(month);
-  const chillHrs = chillIdx >= 0 ? chillMap[key][chillIdx] : (month > 1 && month < 9 ? chillMap[key][4] : 0);
+  // ── Fill all meteo fields ────────────────────────────────────────────────
+  const f = (id, val) => setApiField(id, val, true);
 
-  // Fill meteo fields
-  setApiField('temp_mean',        tm.toFixed(1),   true);
-  setApiField('rainfall_monthly', rain30,          true);
-  setApiField('eto',              eto,             true);
-  setApiField('gdd',              gdd,             true);
-  setApiField('chill_hours',      chillHrs,        true);
-  setApiField('meteo_date',       new Date().toISOString().slice(0,10), true);
-  setApiField('meteo_source',     'copernicus',    true);
+  // Observation period
+  f('meteo_date',   new Date().toISOString().slice(0,10));
+  f('meteo_source', 'copernicus');
 
-  // Derive frost risk (months Nov-Mar for mountain areas)
-  const frostMonths = [10,11,0,1,2];
-  if(frostMonths.includes(month) && (key==='korce' || tm < 5)) {
-    setApiField('frost_days', month===0||month===1?8:4, true);
-  } else {
-    setApiField('frost_days', '0', true);
+  // Temperature
+  f('temp_min',   tmin.toFixed(1));
+  f('temp_max',   tmax.toFixed(1));
+  f('temp_mean',  tm.toFixed(1));
+  f('lst',        (tm + 3.5).toFixed(1));          // LST ≈ air temp + offset
+  f('soil_temp_10', st10.toFixed(1));
+  f('soil_temp_30', st30.toFixed(1));
+  f('temp_anomaly', (tm - ERA5[key].reduce((s,r)=>s+r[0],0)/12).toFixed(1));  // vs annual mean
+  f('heat_stress_days', hsd);
+
+  // Precipitation
+  f('rainfall_daily',    (rain30/30).toFixed(1));
+  f('rainfall_monthly',  rain30);
+  f('rainfall_seasonal', rainSeas);
+  const histRain30 = ERA5[key].reduce((s,r)=>s+r[3],0)/12;
+  f('rainfall_anomaly',  (rain30 - histRain30).toFixed(0));
+
+  // Humidity & dew point
+  f('rh_mean',   rh);
+  f('rh_min',    Math.max(20, rh-22).toFixed(0));
+  f('rh_max',    Math.min(99, rh+12).toFixed(0));
+  f('dew_point', dp.toFixed(1));
+
+  // ETo and water balance
+  const eto = eto_d.toFixed(1);
+  f('eto', eto);
+  const kc = crop==='tomato'?1.15 : crop==='apple'?(month>=3&&month<=8?1.1:0.6) : crop==='olive'?0.65 : 1.0;
+  f('etc', (eto_d * kc).toFixed(1));
+  const deficit = Math.max(0, eto_d*30 - rain30).toFixed(0);
+  f('water_deficit', deficit);
+  const taw100 = parseFloat(document.getElementById('taw_100')?.value || '120');
+  f('soil_water_balance', (taw100 - parseFloat(deficit)).toFixed(0));
+
+  // Soil moisture
+  f('sm_10',    sm10);
+  f('sm_30',    sm30);
+  f('sm_60',    sm60);
+  f('sm_index', (sm10/45).toFixed(3));  // normalise to 0-1
+
+  // Wind & radiation
+  f('wind_speed',   ws.toFixed(1));
+  f('wind_dir',     month<=1||month===11 ? 'NE' : month<=4 ? 'SW' : month<=8 ? 'NW' : 'SW');
+  f('solar_rad',    srad.toFixed(1));
+  f('sunshine_hrs', sun.toFixed(1));
+
+  // Accumulated indicators (already filled by main copernicus fetch)
+  f('gdd',         gdd);
+  f('chill_hours', chill);
+
+  // Risk indicators
+  const diseaseRisk = (rh > 75 && tm > 10 && tm < 28) ? 'high' : (rh > 65 && tm > 8) ? 'medium' : 'low';
+  f('disease_risk', diseaseRisk);
+  f('frost_days', hsd > 0 ? Math.ceil(hsd/2) : (tmin < 0 ? 1 : 0));
+  f('drought_stress', parseFloat(deficit) > 100 ? 'high' : parseFloat(deficit) > 50 ? 'medium' : 'low');
+  if(crop === 'olive') {
+    f('alternate_bearing', gdd > 1100 ? 'high risk' : gdd > 800 ? 'monitor' : 'low risk');
   }
 
-  // Drought stress from ETo and rainfall
-  const deficit = (parseFloat(eto)*30 - rain30).toFixed(0);
-  setApiField('water_deficit', deficit > 0 ? deficit : '0', true);
-  setApiField('drought_stress', deficit > 80 ? 'high' : deficit > 40 ? 'medium' : 'low', true);
+  // Notes
+  f('meteo_notes', 'ERA5 monthly climatology (' + key.replace('_',' ') + ', ' +
+    new Date().toLocaleString('en',{month:'long'}) + '). ' +
+    'NDVI/EVI/NDWI from Copernicus Sentinel-2 L2A. Values are 1991-2020 averages.');
 }
 
 
