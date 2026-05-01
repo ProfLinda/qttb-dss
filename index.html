@@ -1347,10 +1347,10 @@
           </div>
           <div class="field">
             <label>Data source</label>
-            <select id="wb_source">
-              <option value="era5_embedded">ERA5 monthly climatology (built-in)</option>
-              <option value="supabase">Daily climate from database</option>
-              <option value="manual">Manual entry below</option>
+            <select id="wb_source" onchange="computeWaterBalance()">
+              <option value="openmeteo">Live daily data — Open-Meteo (free, auto)</option>
+              <option value="era5_embedded">Monthly climatology (built-in, offline)</option>
+              <option value="supabase">From database (if daily_climate uploaded)</option>
             </select>
           </div>
         </div>
@@ -1388,15 +1388,17 @@
             <thead style="position:sticky;top:0;background:var(--surface)">
               <tr style="border-bottom:1px solid var(--border)">
                 <th style="padding:6px 8px;text-align:left;font-weight:500;white-space:nowrap">Date</th>
-                <th style="padding:6px 8px;font-weight:500">Tmax °C</th>
-                <th style="padding:6px 8px;font-weight:500">Tmin °C</th>
-                <th style="padding:6px 8px;font-weight:500">Rain mm</th>
-                <th style="padding:6px 8px;font-weight:500">ETo mm</th>
+                <th style="padding:6px 8px;font-weight:500">Tmax</th>
+                <th style="padding:6px 8px;font-weight:500">Tmin</th>
+                <th style="padding:6px 8px;font-weight:500">Rain</th>
+                <th style="padding:6px 8px;font-weight:500">ETo</th>
                 <th style="padding:6px 8px;font-weight:500">Kc</th>
-                <th style="padding:6px 8px;font-weight:500">ETc mm</th>
+                <th style="padding:6px 8px;font-weight:500">ETc</th>
                 <th style="padding:6px 8px;font-weight:500">GDD</th>
-                <th style="padding:6px 8px;font-weight:500">SWC mm</th>
-                <th style="padding:6px 8px;font-weight:500">Deficit mm</th>
+                <th style="padding:6px 8px;font-weight:500">∑GDD</th>
+                <th style="padding:6px 8px;font-weight:500">SWC</th>
+                <th style="padding:6px 8px;font-weight:500">Deficit</th>
+                <th style="padding:6px 8px;font-weight:500">RH%</th>
                 <th style="padding:6px 8px;font-weight:500">Irrigation</th>
               </tr>
             </thead>
@@ -3625,53 +3627,212 @@ const WB_MONTHLY = {
 
 let wbDailyData = [];
 
-function computeWaterBalance() {
+async function computeWaterBalance() {
   const loc    = document.getElementById('wb_location')?.value || 'fushe_kruje';
-  const crop   = document.getElementById('wb_crop')?.value || 'apple';
+  const crop   = document.getElementById('wb_crop')?.value     || 'apple';
   const startS = document.getElementById('wb_start')?.value;
-  const taw    = parseFloat(document.getElementById('wb_taw')?.value) || 120;
-  const raw    = parseFloat(document.getElementById('wb_raw')?.value) || taw * 0.5;
+  const taw    = parseFloat(document.getElementById('wb_taw')?.value)      || 120;
+  const raw    = parseFloat(document.getElementById('wb_raw')?.value)      || taw * 0.5;
   const swcInit= parseFloat(document.getElementById('wb_swc_init')?.value) || taw;
+  const source = document.getElementById('wb_source')?.value || 'openmeteo';
   const statusEl = document.getElementById('wb-status');
 
-  const monthly = WB_MONTHLY[loc] || WB_MONTHLY['fushe_kruje'];
-  const kc_arr  = KC_CURVES[crop] || KC_CURVES['apple'];
+  const COORDS = {
+    fushe_kruje:{lat:41.492, lon:19.716},
+    korce:      {lat:40.618, lon:20.778},
+    lushnje:    {lat:40.942, lon:19.705},
+    vlore:      {lat:40.468, lon:19.483},
+  };
+  const coords = COORDS[loc] || COORDS['fushe_kruje'];
+  const kc_arr = KC_CURVES[crop] || KC_CURVES['apple'];
 
-  // Generate 365 days from season start (or Jan 1 current year if not set)
-  const start = startS ? new Date(startS) : new Date(new Date().getFullYear(), 0, 1);
-  const rows = [];
-  let swc = swcInit;
-  let gdd_cum = 0;
+  // Date range: season start to today
+  const start  = startS ? new Date(startS) : new Date(new Date().getFullYear(), 0, 1);
+  const today  = new Date();
+  const fromD  = start.toISOString().slice(0,10);
+  const toD    = today.toISOString().slice(0,10);
 
-  for(let d=0; d<365; d++) {
-    const date = new Date(start); date.setDate(start.getDate() + d);
-    const m = date.getMonth();
-    const [tmax, tmin, rain_mo, eto_d] = monthly[m];
-    const tmean = (tmax+tmin)/2;
-    const rain  = rain_mo / 30;       // daily average from monthly
-    const kc    = kc_arr[m];
-    const etc   = eto_d * kc;
-    const gdd   = Math.max(0, tmean - 10);
-    gdd_cum    += gdd;
-    const deficit = etc - rain;
-    swc = Math.min(taw, swc + rain - etc);
-    if(swc < 0) swc = 0;
-    const irr_needed = swc <= (taw - raw);
-
-    rows.push({
-      date: date.toISOString().slice(0,10),
-      tmax: tmax.toFixed(1), tmin: tmin.toFixed(1),
-      rain: rain.toFixed(1), eto: eto_d.toFixed(2), kc: kc.toFixed(2),
-      etc: etc.toFixed(2), gdd: gdd.toFixed(1), swc: swc.toFixed(1),
-      deficit: Math.max(0,deficit).toFixed(1),
-      irr: irr_needed,
-    });
+  if(source === 'era5_embedded' || source === 'manual') {
+    // Use built-in monthly climatology (already works)
+    computeWaterBalanceFromMonthly(loc, crop, start, taw, raw, swcInit, kc_arr);
+    return;
   }
 
+  // ── LIVE: Open-Meteo Historical Weather API (free, no key, CORS supported) ──
+  if(statusEl) statusEl.textContent = `⟳ Fetching live daily data from Open-Meteo for ${fromD} → ${toD}…`;
+
+  const vars = [
+    'temperature_2m_max', 'temperature_2m_min', 'temperature_2m_mean',
+    'precipitation_sum', 'et0_fao_evapotranspiration',
+    'shortwave_radiation_sum', 'windspeed_10m_mean',
+    'relative_humidity_2m_mean',
+  ].join(',');
+
+  const url = `https://archive-api.open-meteo.com/v1/archive?` +
+    `latitude=${coords.lat}&longitude=${coords.lon}` +
+    `&start_date=${fromD}&end_date=${toD}` +
+    `&daily=${vars}` +
+    `&timezone=Europe%2FTirana` +
+    `&wind_speed_unit=ms`;
+
+  try {
+    const resp = await fetchSafe(url, {}, 20000);
+    if(!resp.ok) throw new Error('Open-Meteo HTTP ' + resp.status);
+    const data = await resp.json();
+    if(!data.daily || !data.daily.time) throw new Error('No data returned');
+
+    const d    = data.daily;
+    const rows = [];
+    let swc = swcInit, gdd_cum = 0;
+
+    d.time.forEach((date, i) => {
+      const tmax = d.temperature_2m_max?.[i]   ?? 25;
+      const tmin = d.temperature_2m_min?.[i]   ?? 10;
+      const tmean= d.temperature_2m_mean?.[i]  ?? (tmax+tmin)/2;
+      const rain = d.precipitation_sum?.[i]    ?? 0;
+      const eto  = d.et0_fao_evapotranspiration?.[i] ?? 3.0;  // already FAO PM!
+      const srad = d.shortwave_radiation_sum?.[i]    ?? 15;
+      const wind = d.windspeed_10m_mean?.[i]         ?? 2.0;
+      const rh   = d.relative_humidity_2m_mean?.[i]  ?? 60;
+      const month= new Date(date).getMonth();
+      const kc   = kc_arr[month];
+      const etc  = eto * kc;
+      const gdd  = Math.max(0, tmean - 10);
+      gdd_cum   += gdd;
+      swc = Math.min(taw, Math.max(0, swc + rain - etc));
+      const irr_needed = swc <= (taw - raw);
+
+      rows.push({
+        date, tmax:tmax.toFixed(1), tmin:tmin.toFixed(1),
+        rain:rain.toFixed(1), eto:eto.toFixed(2), kc:kc.toFixed(2),
+        etc:etc.toFixed(2), gdd:gdd.toFixed(1), gdd_cum:gdd_cum.toFixed(0),
+        swc:swc.toFixed(1), deficit:Math.max(0,etc-rain).toFixed(1),
+        rh:rh.toFixed(0), srad:srad.toFixed(1), wind:wind.toFixed(1),
+        irr: irr_needed,
+      });
+    });
+
+    wbDailyData = rows;
+    renderWBTable(rows);
+    checkIrrigationAlert(rows, raw, taw);
+
+    // Save to Supabase daily_climate if configured
+    saveDailyToSupabase(rows, loc).catch(()=>{});
+
+    if(statusEl) statusEl.textContent =
+      `✓ ${rows.length} days of live ERA5/Open-Meteo data (${fromD} → ${toD}) · loc: ${loc} · crop: ${crop} · TAW: ${taw}mm`;
+
+  } catch(e) {
+    if(statusEl) statusEl.textContent = `✗ Open-Meteo failed: ${e.message} — using monthly climatology`;
+    computeWaterBalanceFromMonthly(loc, crop, start, taw, raw, swcInit, kc_arr);
+  }
+}
+
+function computeWaterBalanceFromMonthly(loc, crop, start, taw, raw, swcInit, kc_arr) {
+  const monthly = WB_MONTHLY[loc] || WB_MONTHLY['fushe_kruje'];
+  const statusEl = document.getElementById('wb-status');
+  const rows = [];
+  let swc = swcInit, gdd_cum = 0;
+  for(let d=0; d<365; d++) {
+    const date = new Date(start); date.setDate(start.getDate()+d);
+    const m = date.getMonth();
+    const [tmax,tmin,rain_mo,eto_d] = monthly[m];
+    const tmean = (tmax+tmin)/2;
+    const rain  = rain_mo/30;
+    const kc    = kc_arr[m];
+    const etc   = eto_d*kc;
+    const gdd   = Math.max(0,tmean-10);
+    gdd_cum    += gdd;
+    swc = Math.min(taw, Math.max(0, swc+rain-etc));
+    rows.push({
+      date:date.toISOString().slice(0,10),
+      tmax:tmax.toFixed(1), tmin:tmin.toFixed(1),
+      rain:rain.toFixed(1), eto:eto_d.toFixed(2), kc:kc.toFixed(2),
+      etc:etc.toFixed(2), gdd:gdd.toFixed(1), gdd_cum:gdd_cum.toFixed(0),
+      swc:swc.toFixed(1), deficit:Math.max(0,etc-rain).toFixed(1),
+      rh:'—', srad:'—', wind:'—', irr:swc<=(taw-raw),
+    });
+  }
   wbDailyData = rows;
   renderWBTable(rows);
   checkIrrigationAlert(rows, raw, taw);
-  if(statusEl) statusEl.textContent = `${rows.length} days computed · loc: ${loc} · crop: ${crop} · TAW: ${taw}mm`;
+  if(statusEl) statusEl.textContent = `${rows.length} days (monthly climatology) · ${loc} · ${crop} · TAW:${taw}mm`;
+}
+
+// Save Open-Meteo data to Supabase daily_climate table for future use
+async function saveDailyToSupabase(rows, location) {
+  const cfg = getDbConfig();
+  if(!cfg || !rows.length) return;
+  // Batch insert in chunks of 100
+  const payload = rows.map(r => ({
+    location, date:r.date,
+    tmax:parseFloat(r.tmax), tmin:parseFloat(r.tmin), tmean:parseFloat(((parseFloat(r.tmax)+parseFloat(r.tmin))/2).toFixed(2)),
+    rain:parseFloat(r.rain), eto:parseFloat(r.eto),
+    rh_mean: r.rh !== '—' ? parseFloat(r.rh) : null,
+    wind_speed: r.wind !== '—' ? parseFloat(r.wind) : null,
+    solar_rad: r.srad !== '—' ? parseFloat(r.srad) : null,
+    gdd_base10: parseFloat(r.gdd),
+  }));
+  for(let i=0; i<payload.length; i+=100) {
+    const chunk = payload.slice(i, i+100);
+    await fetch(`${cfg.url}/rest/v1/daily_climate`, {
+      method:'POST',
+      headers:{'apikey':cfg.key,'Authorization':'Bearer '+cfg.key,
+               'Content-Type':'application/json','Prefer':'resolution=ignore-duplicates'},
+      body:JSON.stringify(chunk),
+    }).catch(()=>{});
+  }
+}
+
+async function loadDailyFromDB() {
+  // Try Supabase first, fall back to Open-Meteo
+  const cfg = getDbConfig();
+  const loc = document.getElementById('wb_location')?.value || 'fushe_kruje';
+  const statusEl = document.getElementById('wb-status');
+
+  if(cfg) {
+    try {
+      if(statusEl) statusEl.textContent = '⟳ Checking database…';
+      const resp = await fetch(
+        `${cfg.url}/rest/v1/daily_climate?location=eq.${loc}&order=date.asc&limit=800`,
+        {headers:{'apikey':cfg.key,'Authorization':'Bearer '+cfg.key}});
+      if(resp.ok) {
+        const data = await resp.json();
+        if(data.length > 0) {
+          if(statusEl) statusEl.textContent = `✓ Loaded ${data.length} days from database — running balance…`;
+          const taw    = parseFloat(document.getElementById('wb_taw')?.value)  || 120;
+          const raw    = parseFloat(document.getElementById('wb_raw')?.value)  || taw*0.5;
+          const swcInit= parseFloat(document.getElementById('wb_swc_init')?.value) || taw;
+          const crop   = document.getElementById('wb_crop')?.value || 'apple';
+          const kc_arr = KC_CURVES[crop] || KC_CURVES['apple'];
+          let swc = swcInit, gdd_cum = 0;
+          wbDailyData = data.map(r => {
+            const m = new Date(r.date).getMonth();
+            const kc = kc_arr[m];
+            const eto = r.eto || 3;
+            const etc = eto*kc;
+            const gdd = Math.max(0,(r.tmean||15)-10);
+            gdd_cum += gdd;
+            swc = Math.min(taw, Math.max(0, swc+(r.rain||0)-etc));
+            return { date:r.date, tmax:(r.tmax||'—'), tmin:(r.tmin||'—'),
+                     rain:(r.rain||0).toFixed(1), eto:eto.toFixed(2), kc:kc.toFixed(2),
+                     etc:etc.toFixed(2), gdd:gdd.toFixed(1), gdd_cum:gdd_cum.toFixed(0),
+                     swc:swc.toFixed(1), deficit:Math.max(0,etc-(r.rain||0)).toFixed(1),
+                     rh:r.rh_mean||'—', srad:r.solar_rad||'—', wind:r.wind_speed||'—',
+                     irr:swc<=(taw-raw) };
+          });
+          renderWBTable(wbDailyData);
+          checkIrrigationAlert(wbDailyData, raw, taw);
+          if(statusEl) statusEl.textContent = `✓ ${data.length} daily records from database for ${loc}`;
+          return;
+        }
+      }
+    } catch(e) {}
+  }
+  // Fallback: fetch from Open-Meteo
+  if(statusEl) statusEl.textContent = 'No database data — fetching live from Open-Meteo…';
+  document.getElementById('wb_source').value = 'openmeteo';
+  computeWaterBalance();
 }
 
 function renderWBTable(rows) {
@@ -3683,18 +3844,21 @@ function renderWBTable(rows) {
     const irrCell = r.irr
       ? `<td style="text-align:center;padding:4px 6px"><span style="background:#E8F2EC;color:#2B5F3F;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500">Irrigate</span></td>`
       : `<td style="text-align:center;padding:4px 6px;color:var(--text-muted)">—</td>`;
-    const swcColor = parseFloat(r.swc) < 30 ? '#C0392B' : parseFloat(r.swc) < 60 ? '#B8720A' : '#2B5F3F';
+    const swc_v = parseFloat(r.swc);
+    const swcColor = swc_v < 30 ? '#C0392B' : swc_v < 60 ? '#B8720A' : '#2B5F3F';
     return `<tr style="border-bottom:0.5px solid var(--border)">
       <td style="padding:4px 8px;white-space:nowrap;font-size:10px">${r.date}</td>
       <td style="padding:4px 6px;text-align:center">${r.tmax}</td>
       <td style="padding:4px 6px;text-align:center">${r.tmin}</td>
-      <td style="padding:4px 6px;text-align:center">${r.rain}</td>
+      <td style="padding:4px 6px;text-align:center;color:${parseFloat(r.rain)>0?'#185FA5':'var(--text-muted)'}">${r.rain}</td>
       <td style="padding:4px 6px;text-align:center">${r.eto}</td>
-      <td style="padding:4px 6px;text-align:center">${r.kc}</td>
+      <td style="padding:4px 6px;text-align:center;color:var(--text-muted)">${r.kc}</td>
       <td style="padding:4px 6px;text-align:center">${r.etc}</td>
       <td style="padding:4px 6px;text-align:center">${r.gdd}</td>
+      <td style="padding:4px 6px;text-align:center;font-weight:500">${r.gdd_cum||'—'}</td>
       <td style="padding:4px 6px;text-align:center;color:${swcColor};font-weight:500">${r.swc}</td>
-      <td style="padding:4px 6px;text-align:center">${r.deficit}</td>
+      <td style="padding:4px 6px;text-align:center;color:${parseFloat(r.deficit)>10?'#B8720A':'var(--text-muted)'}">${r.deficit}</td>
+      <td style="padding:4px 6px;text-align:center;color:var(--text-muted)">${r.rh||'—'}</td>
       ${irrCell}
     </tr>`;
   }).join('');
