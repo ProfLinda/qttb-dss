@@ -1195,6 +1195,7 @@
         <p style="color:var(--text-muted); font-size:13px; text-align:center; padding:32px 0;">No records saved yet.</p>
       </div>
     </div>
+  </div><!-- /tab-records -->
 
   <!-- ===== LAB & FERTILITY TAB ===== -->
   <div id="tab-lab" style="display:none">
@@ -1534,8 +1535,9 @@ function buildHorizons() {
 }
 
 function switchTab(name, el) {
-  ['soil','meteo','lab','water','advisory','records','map'].forEach(t => {
-    document.getElementById('tab-'+t).style.display = t===name?'':'none';
+  ['soil','meteo','records','lab','water','advisory','map'].forEach(t => {
+    const el2 = document.getElementById('tab-'+t);
+    if(el2) el2.style.display = t===name ? 'block' : 'none';
   });
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
