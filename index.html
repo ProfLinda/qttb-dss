@@ -3676,10 +3676,22 @@ async function computeWaterBalance() {
     `&wind_speed_unit=ms`;
 
   try {
-    const resp = await fetchSafe(url, {}, 20000);
-    if(!resp.ok) throw new Error('Open-Meteo HTTP ' + resp.status);
+    if(statusEl) { statusEl.textContent = '⟳ Connecting to Open-Meteo…'; statusEl.style.color='#B8720A'; }
+    let resp;
+    try {
+      resp = await fetch(url);
+    } catch(fetchErr) {
+      throw new Error('Network error: ' + fetchErr.message);
+    }
+    if(!resp.ok) {
+      const errText = await resp.text().catch(()=>'');
+      throw new Error('Open-Meteo HTTP ' + resp.status + ': ' + errText.slice(0,80));
+    }
     const data = await resp.json();
-    if(!data.daily || !data.daily.time) throw new Error('No data returned');
+    if(!data.daily || !data.daily.time) {
+      throw new Error('No daily data in response. Check dates or location.');
+    }
+    if(statusEl) statusEl.textContent = `⟳ Processing ${data.daily.time.length} days…`;
 
     const d    = data.daily;
     const rows = [];
@@ -3723,8 +3735,19 @@ async function computeWaterBalance() {
       `✓ ${rows.length} days of live ERA5/Open-Meteo data (${fromD} → ${toD}) · loc: ${loc} · crop: ${crop} · TAW: ${taw}mm`;
 
   } catch(e) {
-    if(statusEl) statusEl.textContent = `✗ Open-Meteo failed: ${e.message} — using monthly climatology`;
-    computeWaterBalanceFromMonthly(loc, crop, start, taw, raw, swcInit, kc_arr);
+    console.error('Water balance error:', e);
+    if(statusEl) {
+      statusEl.textContent = `✗ Open-Meteo: ${e.message}`;
+      statusEl.style.color = '#C0392B';
+    }
+    // Show error in table too
+    const tbody = document.getElementById('wb-tbody');
+    if(tbody) tbody.innerHTML = `<tr><td colspan="13" style="padding:16px;text-align:center;color:#C0392B;font-size:12px">
+      ✗ Live data failed: ${e.message}<br>
+      <span style="color:var(--text-muted)">Falling back to monthly climatology…</span>
+    </td></tr>`;
+    // Fall back to monthly climatology
+    setTimeout(() => computeWaterBalanceFromMonthly(loc, crop, start, taw, raw, swcInit, kc_arr), 500);
   }
 }
 
