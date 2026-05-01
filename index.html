@@ -3310,14 +3310,44 @@ async function saveToSupabase(soilData, meteoData) {
 async function loadFromSupabase() {
   const cfg = getDbConfig();
   if(!cfg) { showStatus('error','Database not configured — click ⚙ Database'); return; }
+
+  // Read current filter values
+  const commune = (document.getElementById('filter_commune')?.value||'').trim().toLowerCase();
+  const area    = document.getElementById('filter_area')?.value||'';
+  const from    = document.getElementById('filter_from')?.value||'';
+  const to      = document.getElementById('filter_to')?.value||'';
+
+  // Build Supabase query with server-side filtering
+  let url = `${cfg.url}/rest/v1/survey_summary?order=survey_date.desc&limit=200`;
+  if(commune) url += `&commune=ilike.*${encodeURIComponent(commune)}*`;
+  if(area)    url += `&qttb_area=ilike.*${encodeURIComponent(area)}*`;
+  if(from)    url += `&survey_date=gte.${from}`;
+  if(to)      url += `&survey_date=lte.${to}`;
+
+  const statusEl = document.getElementById('filter-status');
+  if(statusEl) statusEl.textContent = '⟳ Loading from database…';
+
   try {
-    const resp = await fetch(`${cfg.url}/rest/v1/survey_summary?order=created_at.desc&limit=100`,
-      { headers:{'apikey':cfg.key,'Authorization':'Bearer '+cfg.key} });
-    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const resp = await fetch(url, {
+      headers: { 'apikey': cfg.key, 'Authorization': 'Bearer '+cfg.key,
+                 'Accept': 'application/json', 'Prefer': 'count=exact' }
+    });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status + ' — ' + await resp.text());
     const surveys = await resp.json();
-    renderDbRecords(surveys);
-    showStatus('success',`Loaded ${surveys.length} records from database`);
-  } catch(e) { showStatus('error','Load failed: '+e.message); }
+
+    // Store in memory so local filter also works on DB records
+    window._dbRecords = surveys;
+
+    // Render combined: DB records + localStorage records
+    renderAllRecords();
+
+    const total = resp.headers.get('content-range')?.split('/')[1] || surveys.length;
+    if(statusEl) statusEl.textContent = `✓ ${surveys.length} records from database${total > surveys.length ? ' (showing first 200)' : ''}`;
+    showStatus('success', `Loaded ${surveys.length} records from database`);
+  } catch(e) {
+    if(statusEl) statusEl.textContent = '✗ ' + e.message;
+    showStatus('error', 'Load failed: ' + e.message);
+  }
 }
 
 function renderDbRecords(surveys) {
@@ -3859,23 +3889,58 @@ function drawNDVIChart(labels, values) {
 // RECORDS FILTER
 // ═══════════════════════════════════════════════════════════════════════════
 function filterRecords() {
-  const commune = document.getElementById('filter_commune')?.value.toLowerCase().trim() || '';
-  const area    = document.getElementById('filter_area')?.value || '';
-  const from    = document.getElementById('filter_from')?.value || '';
-  const to      = document.getElementById('filter_to')?.value || '';
-  const all     = loadRecords();
+  renderAllRecords();
+}
+
+function renderAllRecords() {
+  const commune = (document.getElementById('filter_commune')?.value||'').toLowerCase().trim();
+  const area    = document.getElementById('filter_area')?.value||'';
+  const from    = document.getElementById('filter_from')?.value||'';
+  const to      = document.getElementById('filter_to')?.value||'';
+
+  // Local storage records
+  const localRecs = loadRecords().map(r => ({
+    _source: 'local', _id: r.id,
+    id: r.id, ref_no: r.soil?.ref_no, commune: r.soil?.commune,
+    district: r.soil?.district, survey_date: r.soil?.survey_date,
+    surveyor: r.soil?.surveyor, qttb_area: r.soil?.qttb_area,
+    soil_type: r.soil?.soil_type, taw_100: r.soil?.taw_100,
+    ndvi: r.meteo?.ndvi, horizon_count: (r.soil?.horizons||[]).filter(h=>h.h).length,
+    parcel_area_m2: null, _raw: r,
+  }));
+
+  // Database records (loaded via loadFromSupabase)
+  const dbRecs = (window._dbRecords||[]).map(s => ({
+    _source: 'db', _id: s.id,
+    ...s, _raw: null,
+  }));
+
+  // Merge — prefer DB version if same ref_no exists
+  const dbRefs = new Set(dbRecs.map(r=>r.ref_no).filter(Boolean));
+  const local  = localRecs.filter(r => !r.ref_no || !dbRefs.has(r.ref_no));
+  const all    = [...dbRecs, ...local];
+
+  // Apply filters
   const filtered = all.filter(r => {
-    const s = r.soil || {};
-    if(commune && !(s.commune||'').toLowerCase().includes(commune)) return false;
-    if(area    && !(s.qttb_area||'').includes(area)) return false;
-    if(from    && s.survey_date && s.survey_date < from) return false;
-    if(to      && s.survey_date && s.survey_date > to)   return false;
+    if(commune && !(r.commune||'').toLowerCase().includes(commune)) return false;
+    if(area    && !(r.qttb_area||'').includes(area)) return false;
+    if(from    && r.survey_date && r.survey_date < from) return false;
+    if(to      && r.survey_date && r.survey_date > to)   return false;
     return true;
   });
-  const status = document.getElementById('filter-status');
-  if(status) status.textContent = filtered.length === all.length
-    ? `${all.length} record(s) total`
-    : `Showing ${filtered.length} of ${all.length} record(s)`;
+
+  const statusEl = document.getElementById('filter-status');
+  if(statusEl) {
+    const dbCount    = filtered.filter(r=>r._source==='db').length;
+    const localCount = filtered.filter(r=>r._source==='local').length;
+    const parts = [];
+    if(dbCount)    parts.push(`${dbCount} from database`);
+    if(localCount) parts.push(`${localCount} local`);
+    statusEl.textContent = filtered.length
+      ? `${filtered.length} record(s) — ${parts.join(' + ')}${filtered.length < all.length ? ` (filtered from ${all.length})`:''}`
+      : 'No records match the filter';
+  }
+
   renderRecordsList(filtered);
 }
 
@@ -3886,31 +3951,76 @@ function clearFilters() {
   filterRecords();
 }
 
-function renderRecords() { filterRecords(); }
+function renderRecords() { renderAllRecords(); }
 
 function renderRecordsList(records) {
   const container = document.getElementById('records-list');
   if(!records||!records.length) {
-    container.innerHTML='<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:32px 0">No records match the filter.</p>';
+    container.innerHTML='<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:32px 0">No records match the filter. Try clearing filters or loading from database.</p>';
     return;
   }
-  container.innerHTML = records.map(r=>{
-    const s=r.soil||{}, m=r.meteo||{};
-    const area={fushe_kruje_apple:'FK–Apple',fushe_kruje_tomato:'FK–Tomato',fushe_kruje_olive:'FK–Olive',korce_apple:'Korçë–Apple',lushnje_tomato:'Lushnje–Tomato',vlore_olive:'Vlorë–Olive'}[s.qttb_area]||s.qttb_area||'—';
-    const ndviStr = m.ndvi ? `NDVI:${m.ndvi} ` : '';
-    const tawStr  = s.taw_100 ? `TAW:${s.taw_100}mm ` : '';
+  const AREA_LABELS = {
+    fushe_kruje_apple:'FK–Apple', fushe_kruje_tomato:'FK–Tomato', fushe_kruje_olive:'FK–Olive',
+    korce_apple:'Korçë–Apple', lushnje_tomato:'Lushnje–Tomato', vlore_olive:'Vlorë–Olive',
+    korce:'Korçë', lushnje:'Lushnje', vlore:'Vlorë',
+  };
+  container.innerHTML = records.map(r => {
+    const isDB    = r._source === 'db';
+    const commune = r.commune || r.soil?.commune || '—';
+    const area    = AREA_LABELS[r.qttb_area||r.soil?.qttb_area] || r.qttb_area || r.soil?.qttb_area || '—';
+    const surveyor= r.surveyor || r.soil?.surveyor || '—';
+    const ref     = r.ref_no   || r.soil?.ref_no   || '—';
+    const date    = r.survey_date || r.soil?.survey_date || '—';
+    const soil    = (r.soil_type || r.soil?.soil_type || '—').slice(0,35);
+    const taw     = r.taw_100  || r.soil?.taw_100;
+    const ndvi    = r.ndvi     || r.meteo?.ndvi;
+    const hor     = r.horizon_count || (r.soil?.horizons||[]).filter(h=>h&&h.h).length || 0;
+    const area_m2 = r.parcel_area_m2 ? ` · ${(r.parcel_area_m2/10000).toFixed(2)}ha` : '';
+    const ndviStr = ndvi ? `NDVI:${ndvi} ` : '';
+    const tawStr  = taw  ? `TAW:${taw}mm ` : '';
+    const srcBadge= isDB
+      ? `<span style="font-size:9px;background:#E6F1FB;color:#185FA5;padding:1px 6px;border-radius:10px;margin-left:6px">DB</span>`
+      : `<span style="font-size:9px;background:#F1EFE8;color:#5F5E5A;padding:1px 6px;border-radius:10px;margin-left:6px">local</span>`;
+    const loadFn  = isDB ? `loadDbRecord(${r._id})` : `loadRecord(${r._id})`;
+    const advFn   = isDB ? `generateAdvisoryFromDbRecord(${r._id})` : `generateAdvisoryFromRecord(${r._id})`;
+    const delFn   = isDB ? `deleteDbRecord(${r._id})` : `deleteRecord(${r._id})`;
     return `<div class="record-item">
       <div style="flex:1">
-        <div style="font-weight:500">${s.commune||'—'} · ${area} · ${s.surveyor||'—'}</div>
-        <div class="record-meta">Ref:${s.ref_no||'—'} | Date:${s.survey_date||'—'} | Soil:${s.soil_type?.slice(0,30)||'—'} | ${tawStr}${ndviStr}</div>
+        <div style="font-weight:500;display:flex;align-items:center;flex-wrap:wrap;gap:4px">
+          ${commune} · ${area} · ${surveyor}${srcBadge}
+        </div>
+        <div class="record-meta">Ref:${ref} | Date:${date} | ${soil} | ${tawStr}${ndviStr}H:${hor}${area_m2}</div>
       </div>
       <div class="record-actions">
-        <button class="btn btn-outline" style="font-size:11px;padding:4px 10px" onclick="loadRecord(${r.id})">Load</button>
-        <button class="btn btn-outline" style="font-size:11px;padding:4px 10px" onclick="generateAdvisoryFromRecord(${r.id})">Advisory</button>
-        <button class="btn btn-danger"  style="font-size:11px;padding:4px 10px" onclick="deleteRecord(${r.id})">Delete</button>
+        <button class="btn btn-outline" style="font-size:11px;padding:4px 10px" onclick="${loadFn}">Load</button>
+        <button class="btn btn-outline" style="font-size:11px;padding:4px 10px" onclick="${advFn}">Advisory</button>
+        <button class="btn btn-danger"  style="font-size:11px;padding:4px 10px" onclick="${delFn}">Delete</button>
       </div>
     </div>`;
   }).join('');
+}
+
+function generateAdvisoryFromDbRecord(id) {
+  const r = (window._dbRecords||[]).find(r=>r.id===id);
+  if(!r) return;
+  // Fill key form fields from DB record then switch to advisory tab
+  const fill = (fid, val) => { const el=document.getElementById(fid); if(el&&val) el.value=val; };
+  fill('commune',     r.commune);
+  fill('survey_date', r.survey_date);
+  fill('surveyor',    r.surveyor);
+  fill('ref_no',      r.ref_no);
+  fill('gps_n',       r.gps_n);
+  fill('gps_e',       r.gps_e);
+  fill('qttb_area',   r.qttb_area);
+  fill('soil_type',   r.soil_type);
+  fill('taw_100',     r.taw_100);
+  fill('ndvi',        r.ndvi);
+  fill('eto',         r.eto);
+  fill('water_stress_class', r.water_stress_class);
+  fill('disease_risk',       r.disease_risk);
+  fill('flooding_info',      r.flooding_info);
+  document.querySelectorAll('.tab')[4].click();
+  generateAdvisory();
 }
 
 function loadRecord(id) {
