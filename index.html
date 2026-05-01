@@ -1150,27 +1150,6 @@
 
   <!-- ===== RECORDS TAB ===== -->
   <div id="tab-records" style="display:none">
-
-    <div class="export-panel">
-      <div class="card-title" style="border:none; padding:0; margin-bottom:8px;"><span class="card-title-dot"></span>Export all records</div>
-      <p style="font-size:13px; color:var(--text-muted);">Download all saved records as JSON (for DSS import) or CSV (for spreadsheet review).</p>
-      <div class="export-btn-row">
-        <button class="btn btn-accent" onclick="loadFromSupabase()">↓ Load from database</button>
-        <button class="btn btn-accent" onclick="exportJSON()">Download JSON</button>
-        <button class="btn btn-outline" onclick="exportCSV()">Download CSV</button>
-        <button class="btn btn-outline" onclick="exportHTML()">Download printable form</button>
-        <button class="btn btn-danger" onclick="clearAllRecords()">Clear all records</button>
-      </div>
-    </div>
-
-    <div id="records-list">
-      <p style="color:var(--text-muted); font-size:13px; text-align:center; padding:32px 0;">No records saved yet. Fill in the survey form and click "Save record".</p>
-    </div>
-
-  </div><!-- /tab-records
-
-  actually replace entire records tab with search-enabled version -->
-  <div id="tab-records" style="display:none">
     <div class="form-body">
       <!-- SEARCH & FILTER -->
       <div class="card" style="padding:12px 16px;">
