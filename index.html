@@ -1306,7 +1306,7 @@
         <div class="grid-4">
           <div class="field">
             <label>Location</label>
-            <select id="wb_location" onchange="loadWaterBalanceData()">
+            <select id="wb_location" onchange="computeWaterBalance()">
               <option value="fushe_kruje">Fushë Krujë — ATTC</option>
               <option value="korce">Korçë — Apple</option>
               <option value="lushnje">Lushnje — Tomato</option>
@@ -1403,7 +1403,7 @@
               </tr>
             </thead>
             <tbody id="wb-tbody">
-              <tr><td colspan="11" style="padding:20px;text-align:center;color:var(--text-muted)">Click "Run water balance" to generate the daily table</td></tr>
+              <tr><td colspan="13" style="padding:20px;text-align:center;color:var(--text-muted)">Click "Run water balance" to generate the daily table</td></tr>
             </tbody>
           </table>
         </div>
@@ -4329,6 +4329,12 @@ Please find your QTTB agronomic advisory below.
 }
 
 
+
+// Set water balance defaults
+const wbStartEl = document.getElementById('wb_start');
+if(wbStartEl && !wbStartEl.value) {
+  wbStartEl.value = new Date().getFullYear() + '-01-01';
+}
 buildHorizons();
 updateRecordCount();
 updateProgress();
