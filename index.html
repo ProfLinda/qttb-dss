@@ -400,7 +400,10 @@
 <div class="tab-bar">
   <div class="tab active" onclick="switchTab('soil', this)">Soil &amp; land survey</div>
   <div class="tab" onclick="switchTab('meteo', this)">Meteo variables</div>
-  <div class="tab" onclick="switchTab('records', this)">Saved records</div>
+  <div class="tab" onclick="switchTab('lab', this)">Lab &amp; fertility</div>
+  <div class="tab" onclick="switchTab('water', this)">Water balance DSS</div>
+  <div class="tab" onclick="switchTab('advisory', this)">Farmer advisory</div>
+  <div class="tab" onclick="switchTab('records', this)">Records</div>
   <div class="tab" onclick="switchTab('map', this)">GIS Map</div>
 </div>
 
@@ -1164,9 +1167,311 @@
       <p style="color:var(--text-muted); font-size:13px; text-align:center; padding:32px 0;">No records saved yet. Fill in the survey form and click "Save record".</p>
     </div>
 
-  </div><!-- /tab-records -->
+  </div><!-- /tab-records
 
-  <!-- ===== GIS MAP TAB ===== -->
+  actually replace entire records tab with search-enabled version -->
+  <div id="tab-records" style="display:none">
+    <div class="form-body">
+      <!-- SEARCH & FILTER -->
+      <div class="card" style="padding:12px 16px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+          <div class="field" style="flex:1;min-width:140px;margin-bottom:0">
+            <label style="font-size:11px">Commune / location</label>
+            <input type="text" id="filter_commune" placeholder="e.g. Korçë" oninput="filterRecords()">
+          </div>
+          <div class="field" style="min-width:160px;margin-bottom:0">
+            <label style="font-size:11px">QTTB area / crop</label>
+            <select id="filter_area" onchange="filterRecords()">
+              <option value="">All areas</option>
+              <option value="fushe_kruje">Fushë Krujë</option>
+              <option value="korce">Korçë — Apple</option>
+              <option value="lushnje">Lushnje — Tomato</option>
+              <option value="vlore">Vlorë — Olive</option>
+            </select>
+          </div>
+          <div class="field" style="min-width:130px;margin-bottom:0">
+            <label style="font-size:11px">Date from</label>
+            <input type="date" id="filter_from" onchange="filterRecords()">
+          </div>
+          <div class="field" style="min-width:130px;margin-bottom:0">
+            <label style="font-size:11px">Date to</label>
+            <input type="date" id="filter_to" onchange="filterRecords()">
+          </div>
+          <button class="btn btn-ghost" onclick="clearFilters()" style="font-size:11px;padding:6px 12px;white-space:nowrap">Clear filters</button>
+          <button class="btn btn-outline" onclick="loadFromSupabase()" style="font-size:11px;padding:6px 12px;white-space:nowrap">↓ Load from database</button>
+        </div>
+        <div id="filter-status" style="font-size:11px;color:var(--text-muted);margin-top:6px;font-family:var(--mono)"></div>
+      </div>
+
+      <div class="export-panel">
+        <div class="export-btn-row">
+          <button class="btn btn-accent" onclick="exportJSON()">Download JSON</button>
+          <button class="btn btn-outline" onclick="exportCSV()">Download CSV</button>
+          <button class="btn btn-outline" onclick="exportHTML()">Printable form</button>
+          <button class="btn btn-danger" onclick="clearAllRecords()">Clear all</button>
+        </div>
+      </div>
+
+      <div id="records-list">
+        <p style="color:var(--text-muted); font-size:13px; text-align:center; padding:32px 0;">No records saved yet.</p>
+      </div>
+    </div>
+
+  <!-- ===== LAB & FERTILITY TAB ===== -->
+  <div id="tab-lab" style="display:none">
+    <div class="form-body">
+
+      <!-- LAB ANALYTICAL DATA -->
+      <div class="card">
+        <div class="card-title"><span class="card-title-dot"></span>Soil chemical analysis — laboratory data
+          <span style="font-size:10px;font-weight:400;color:var(--text-muted);margin-left:8px">Enter values from laboratory reports (Fatjon's compiled data)</span>
+        </div>
+        <div class="grid-4">
+          <div class="field"><label>pH (water)</label><input type="number" id="lab_ph" step="0.1" min="3" max="10" placeholder="e.g. 7.8" oninput="runFertilityAssessment()"></div>
+          <div class="field"><label>CEC me/100g</label><input type="number" id="lab_cec" step="0.1" placeholder="e.g. 28.5" oninput="runFertilityAssessment()"></div>
+          <div class="field"><label>Organic matter %</label><input type="number" id="lab_om" step="0.01" placeholder="e.g. 2.1" oninput="runFertilityAssessment()"></div>
+          <div class="field"><label>Available P (ppm)</label><input type="number" id="lab_p_avail" step="0.1" placeholder="e.g. 18" oninput="runFertilityAssessment()"></div>
+        </div>
+        <div class="grid-4 mt">
+          <div class="field"><label>Total N %</label><input type="number" id="lab_n_total" step="0.001" placeholder="e.g. 0.18" oninput="runFertilityAssessment()"></div>
+          <div class="field"><label>Available K me/100g</label><input type="number" id="lab_k" step="0.01" placeholder="e.g. 0.45" oninput="runFertilityAssessment()"></div>
+          <div class="field"><label>Exchangeable Ca me/100g</label><input type="number" id="lab_ca" step="0.1" placeholder="e.g. 18.2" oninput="runFertilityAssessment()"></div>
+          <div class="field"><label>Exchangeable Mg me/100g</label><input type="number" id="lab_mg" step="0.01" placeholder="e.g. 3.4" oninput="runFertilityAssessment()"></div>
+        </div>
+        <div class="grid-4 mt">
+          <div class="field"><label>Exchangeable Na me/100g</label><input type="number" id="lab_na" step="0.01" placeholder="e.g. 0.12" oninput="runFertilityAssessment()"></div>
+          <div class="field"><label>CaCO₃ %</label><input type="number" id="lab_caco3" step="0.1" placeholder="e.g. 5.2" oninput="runFertilityAssessment()"></div>
+          <div class="field"><label>EC dS/m</label><input type="number" id="lab_ec" step="0.01" placeholder="e.g. 0.45" oninput="runFertilityAssessment()"></div>
+          <div class="field"><label>ESP % (auto-computed)</label><input type="number" id="lab_esp" step="0.1" placeholder="auto" readonly style="background:var(--bg-secondary)"></div>
+        </div>
+        <div class="grid-4 mt">
+          <div class="field"><label>Clay %</label><input type="number" id="lab_clay" step="0.1" placeholder="e.g. 32" oninput="runFertilityAssessment()"></div>
+          <div class="field"><label>Silt %</label><input type="number" id="lab_silt" step="0.1" placeholder="e.g. 28" oninput="runFertilityAssessment()"></div>
+          <div class="field"><label>Fine sand %</label><input type="number" id="lab_fsand" step="0.1" placeholder="e.g. 25" oninput="runFertilityAssessment()"></div>
+          <div class="field"><label>Coarse sand %</label><input type="number" id="lab_csand" step="0.1" placeholder="e.g. 15" oninput="runFertilityAssessment()"></div>
+        </div>
+        <div class="grid-4 mt">
+          <div class="field"><label>Sampling depth cm</label><input type="text" id="lab_depth" placeholder="e.g. 0-30"></div>
+          <div class="field"><label>Analysis date</label><input type="date" id="lab_date"></div>
+          <div class="field"><label>Laboratory</label><input type="text" id="lab_lab" placeholder="e.g. SRI Tirana"></div>
+          <div class="field"><label>Sample ref.</label><input type="text" id="lab_ref" placeholder="e.g. FK-2024-001"></div>
+        </div>
+      </div>
+
+      <!-- AUTO-COMPUTED INDICES -->
+      <div class="card">
+        <div class="card-title"><span class="card-title-dot"></span>Auto-computed indices</div>
+        <div class="grid-4">
+          <div class="field"><label>Sum of bases me/100g</label><input type="number" id="lab_bases" readonly style="background:var(--bg-secondary)"></div>
+          <div class="field"><label>Base saturation %</label><input type="number" id="lab_basesat" readonly style="background:var(--bg-secondary)"></div>
+          <div class="field"><label>Ca:Mg ratio</label><input type="number" id="lab_camg" readonly style="background:var(--bg-secondary)"></div>
+          <div class="field"><label>K:Mg ratio</label><input type="number" id="lab_kmg" readonly style="background:var(--bg-secondary)"></div>
+        </div>
+        <div style="margin-top:10px;">
+          <button class="btn btn-accent" onclick="computeLabIndices()">Compute derived indices</button>
+        </div>
+      </div>
+
+      <!-- FERTILITY ASSESSMENT OUTPUT -->
+      <div class="card" id="fertility-card" style="border-color:#b0d9be">
+        <div class="card-title"><span class="card-title-dot"></span>Soil fertility assessment <span id="fertility-badge" style="font-size:11px;margin-left:8px"></span></div>
+        <div id="fertility-output" style="font-size:12px;color:var(--text-muted);line-height:1.8">Enter laboratory values above to generate assessment.</div>
+      </div>
+
+      <!-- CROP FERTILIZATION RECOMMENDATION -->
+      <div class="card">
+        <div class="card-title"><span class="card-title-dot"></span>Fertilization recommendation</div>
+        <div class="grid-3">
+          <div class="field">
+            <label>Crop</label>
+            <select id="fert_crop" onchange="runFertilizationRec()">
+              <option value="">Select crop…</option>
+              <option value="apple">Apple (Korçë)</option>
+              <option value="tomato">Tomato (Lushnje)</option>
+              <option value="olive">Olive (Vlorë)</option>
+              <option value="wheat">Wheat</option>
+              <option value="maize">Maize</option>
+              <option value="alfalfa">Alfalfa</option>
+              <option value="vines">Vines</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Expected yield (t/ha)</label>
+            <input type="number" id="fert_yield" step="0.5" placeholder="e.g. 25" oninput="runFertilizationRec()">
+          </div>
+          <div class="field">
+            <label>Irrigation available?</label>
+            <select id="fert_irr" onchange="runFertilizationRec()">
+              <option value="yes">Yes</option>
+              <option value="no">No / limited</option>
+            </select>
+          </div>
+        </div>
+        <div id="fertilization-output" style="margin-top:12px;font-size:12px;color:var(--text-muted)">Select crop above to generate recommendation.</div>
+        <div style="margin-top:10px;display:flex;gap:8px;">
+          <button class="btn btn-accent" onclick="runFertilizationRec()">Generate recommendation</button>
+          <button class="btn btn-outline" onclick="exportFertilityReport()">Export report</button>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /tab-lab -->
+
+  <!-- ===== WATER BALANCE DSS TAB ===== -->
+  <div id="tab-water" style="display:none">
+    <div class="form-body">
+
+      <!-- WATER BALANCE CONFIG -->
+      <div class="card">
+        <div class="card-title"><span class="card-title-dot"></span>Dynamic irrigation water balance — configuration</div>
+        <div class="grid-4">
+          <div class="field">
+            <label>Location</label>
+            <select id="wb_location" onchange="loadWaterBalanceData()">
+              <option value="fushe_kruje">Fushë Krujë — ATTC</option>
+              <option value="korce">Korçë — Apple</option>
+              <option value="lushnje">Lushnje — Tomato</option>
+              <option value="vlore">Vlorë — Olive</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Crop</label>
+            <select id="wb_crop" onchange="computeWaterBalance()">
+              <option value="apple">Apple</option>
+              <option value="tomato">Tomato</option>
+              <option value="olive">Olive</option>
+              <option value="wheat">Wheat</option>
+              <option value="maize">Maize</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Season start date</label>
+            <input type="date" id="wb_start" oninput="computeWaterBalance()">
+          </div>
+          <div class="field">
+            <label>TAW 0–100cm (mm)</label>
+            <input type="number" id="wb_taw" value="120" step="5" oninput="computeWaterBalance()">
+          </div>
+        </div>
+        <div class="grid-4 mt">
+          <div class="field">
+            <label>RAW — depletion threshold (mm)</label>
+            <input type="number" id="wb_raw" value="60" step="5" oninput="computeWaterBalance()">
+          </div>
+          <div class="field">
+            <label>Irrigation efficiency %</label>
+            <input type="number" id="wb_irr_eff" value="80" step="5" oninput="computeWaterBalance()">
+          </div>
+          <div class="field">
+            <label>Initial SWC (mm, = TAW if at field capacity)</label>
+            <input type="number" id="wb_swc_init" value="100" step="5" oninput="computeWaterBalance()">
+          </div>
+          <div class="field">
+            <label>Data source</label>
+            <select id="wb_source">
+              <option value="era5_embedded">ERA5 monthly climatology (built-in)</option>
+              <option value="supabase">Daily climate from database</option>
+              <option value="manual">Manual entry below</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button class="btn btn-accent" onclick="computeWaterBalance()">Run water balance</button>
+          <button class="btn btn-outline" onclick="loadDailyFromDB()">Load daily data from database</button>
+          <span id="wb-status" style="font-size:11px;color:var(--text-muted);font-family:var(--mono)"></span>
+        </div>
+      </div>
+
+      <!-- IRRIGATION ALERT -->
+      <div id="wb-alert-panel" style="display:none;margin-bottom:0">
+        <div class="card" id="wb-alert-card">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div id="wb-alert-icon" style="font-size:32px">💧</div>
+            <div>
+              <div id="wb-alert-title" style="font-size:16px;font-weight:500;color:#C47A1A">Irrigation alert</div>
+              <div id="wb-alert-text" style="font-size:13px;color:var(--text-muted);margin-top:2px"></div>
+            </div>
+            <div style="margin-left:auto;text-align:right;">
+              <div style="font-size:24px;font-weight:500;color:#2B5F3F" id="wb-volume">—</div>
+              <div style="font-size:11px;color:var(--text-muted)">mm to apply</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DAILY WATER BALANCE TABLE -->
+      <div class="card">
+        <div class="card-title"><span class="card-title-dot"></span>Daily water balance
+          <button class="btn btn-outline" style="font-size:10px;padding:3px 10px;margin-left:auto" onclick="exportWaterBalance()">Export CSV</button>
+        </div>
+        <div style="overflow-x:auto;max-height:400px;overflow-y:auto;">
+          <table id="wb-table" style="width:100%;border-collapse:collapse;font-size:11px;">
+            <thead style="position:sticky;top:0;background:var(--surface)">
+              <tr style="border-bottom:1px solid var(--border)">
+                <th style="padding:6px 8px;text-align:left;font-weight:500;white-space:nowrap">Date</th>
+                <th style="padding:6px 8px;font-weight:500">Tmax °C</th>
+                <th style="padding:6px 8px;font-weight:500">Tmin °C</th>
+                <th style="padding:6px 8px;font-weight:500">Rain mm</th>
+                <th style="padding:6px 8px;font-weight:500">ETo mm</th>
+                <th style="padding:6px 8px;font-weight:500">Kc</th>
+                <th style="padding:6px 8px;font-weight:500">ETc mm</th>
+                <th style="padding:6px 8px;font-weight:500">GDD</th>
+                <th style="padding:6px 8px;font-weight:500">SWC mm</th>
+                <th style="padding:6px 8px;font-weight:500">Deficit mm</th>
+                <th style="padding:6px 8px;font-weight:500">Irrigation</th>
+              </tr>
+            </thead>
+            <tbody id="wb-tbody">
+              <tr><td colspan="11" style="padding:20px;text-align:center;color:var(--text-muted)">Click "Run water balance" to generate the daily table</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- NDVI TIME SERIES -->
+      <div class="card">
+        <div class="card-title"><span class="card-title-dot"></span>NDVI time series — vegetation index trend
+          <button class="btn btn-outline" style="font-size:10px;padding:3px 10px;margin-left:auto" onclick="fetchNDVISeries()">Fetch from Sentinel-2</button>
+        </div>
+        <canvas id="ndvi-chart" style="width:100%;height:200px;"></canvas>
+        <div id="ndvi-chart-status" style="font-size:11px;color:var(--text-muted);text-align:center;padding:8px">Fetches monthly NDVI for the last 12 months at current GPS coordinates.</div>
+      </div>
+
+    </div>
+  </div><!-- /tab-water -->
+
+  <!-- ===== FARMER ADVISORY TAB ===== -->
+  <div id="tab-advisory" style="display:none">
+    <div class="form-body">
+      <div class="card">
+        <div class="card-title"><span class="card-title-dot"></span>Generate farmer advisory</div>
+        <div class="grid-3">
+          <div class="field">
+            <label>Farmer name</label>
+            <input type="text" id="farmer_name" placeholder="Full name">
+          </div>
+          <div class="field">
+            <label>Contact (phone / WhatsApp)</label>
+            <input type="text" id="farmer_contact" placeholder="+355 6X XXX XXXX">
+          </div>
+          <div class="field">
+            <label>Advisory date</label>
+            <input type="date" id="advisory_date" value="">
+          </div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-accent" onclick="generateAdvisory()">Generate advisory</button>
+          <button class="btn btn-outline" onclick="printAdvisory()">Print / Save PDF</button>
+          <button class="btn btn-outline" onclick="whatsappAdvisory()">Share via WhatsApp</button>
+          <button class="btn btn-outline" onclick="emailAdvisory()">Share via Email</button>
+        </div>
+      </div>
+      <!-- Advisory output rendered here -->
+      <div id="advisory-output" style="display:none"></div>
+    </div>
+  </div><!-- /tab-advisory -->
+
+
   <div id="tab-map">
     <div class="map-tab-wrap">
       <div class="map-layers">
@@ -1248,13 +1553,14 @@ function buildHorizons() {
 }
 
 function switchTab(name, el) {
-  ['soil','meteo','records','map'].forEach(t => {
+  ['soil','meteo','lab','water','advisory','records','map'].forEach(t => {
     document.getElementById('tab-'+t).style.display = t===name?'':'none';
   });
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   if(name==='records') renderRecords();
   if(name==='map') initMap();
+  if(name==='advisory') { document.getElementById('advisory_date').value = new Date().toISOString().slice(0,10); }
 }
 
 function getVal(id) {
@@ -3053,6 +3359,721 @@ async function deleteDbRecord(id) {
   loadFromSupabase();
   showStatus('success',`Record #${id} deleted`);
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LAB ANALYSIS — AUTO-COMPUTED INDICES
+// ═══════════════════════════════════════════════════════════════════════════
+function computeLabIndices() {
+  const g = id => parseFloat(document.getElementById(id)?.value) || 0;
+  const ca=g('lab_ca'), mg=g('lab_mg'), k=g('lab_k'), na=g('lab_na'), cec=g('lab_cec');
+  const clay=g('lab_clay'), fsand=g('lab_fsand'), csand=g('lab_csand');
+
+  const bases = ca+mg+k+na;
+  const basesat = cec>0 ? (bases/cec*100) : 0;
+  const esp = cec>0 ? (na/cec*100) : 0;
+  const camg = mg>0 ? ca/mg : 0;
+  const kmg  = mg>0 ? k/mg  : 0;
+
+  const set = (id,v) => { const el=document.getElementById(id); if(el) el.value=v>0?v.toFixed(2):''; };
+  set('lab_bases',  bases);
+  set('lab_basesat',basesat);
+  set('lab_esp',    esp);
+  set('lab_camg',   camg);
+  set('lab_kmg',    kmg);
+
+  runFertilityAssessment();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SOIL FERTILITY ASSESSMENT ENGINE
+// Standards: FAO/USDA thresholds for Mediterranean arable land
+// ═══════════════════════════════════════════════════════════════════════════
+function runFertilityAssessment() {
+  computeLabIndices();
+  const g = id => parseFloat(document.getElementById(id)?.value) || null;
+
+  const ph=g('lab_ph'), om=g('lab_om'), cec=g('lab_cec');
+  const p=g('lab_p_avail'), n=g('lab_n_total'), k=g('lab_k');
+  const ca=g('lab_ca'), mg=g('lab_mg'), na=g('lab_na');
+  const ec=g('lab_ec'), esp=g('lab_esp') || (cec&&na ? na/cec*100 : null);
+
+  if(!ph && !om && !cec) return;
+
+  const findings = [];
+  const recs = [];
+  let score = 0, maxScore = 0;
+
+  // pH assessment
+  if(ph) {
+    maxScore += 20;
+    if(ph < 5.5)      { findings.push({icon:'⚠',color:'#C0392B',text:`pH ${ph} — strongly acid. Lime application essential.`}); recs.push('Apply agricultural limestone 2-4 t/ha. Recheck pH in 2 years.'); }
+    else if(ph < 6.0) { findings.push({icon:'⚠',color:'#B8720A',text:`pH ${ph} — moderately acid. Lime recommended.`}); recs.push('Apply 1-2 t/ha calcitic limestone.'); score+=8; }
+    else if(ph <= 7.5){ findings.push({icon:'✓',color:'#2B5F3F',text:`pH ${ph} — optimal range (6.0–7.5).`}); score+=20; }
+    else if(ph <= 8.5){ findings.push({icon:'ℹ',color:'#B8720A',text:`pH ${ph} — moderately alkaline. Limit P availability.`}); recs.push('Use chelated micronutrients. Acidifying fertilizers (ammonium sulfate) help.'); score+=12; }
+    else              { findings.push({icon:'✗',color:'#C0392B',text:`pH ${ph} — strongly alkaline. Severe P/Fe/Mn deficiency risk.`}); recs.push('Soil amendment with elemental sulfur or acidifying agents required.'); score+=4; }
+  }
+
+  // Organic matter
+  if(om!==null) {
+    maxScore += 20;
+    if(om < 1.0)     { findings.push({icon:'✗',color:'#C0392B',text:`OM ${om}% — very low. Soil biologically degraded.`}); recs.push('Add 20-30 t/ha organic compost or manure annually for 3+ years.'); }
+    else if(om < 2.0){ findings.push({icon:'⚠',color:'#B8720A',text:`OM ${om}% — low. Structure and fertility compromised.`}); recs.push('Green manure + 10-15 t/ha compost annually.'); score+=8; }
+    else if(om < 3.5){ findings.push({icon:'✓',color:'#2B5F3F',text:`OM ${om}% — satisfactory (2-3.5%).`}); score+=20; }
+    else             { findings.push({icon:'✓',color:'#2B5F3F',text:`OM ${om}% — high. Excellent soil biology.`}); score+=20; }
+  }
+
+  // Available phosphorus (Olsen method)
+  if(p!==null) {
+    maxScore += 15;
+    if(p < 10)       { findings.push({icon:'✗',color:'#C0392B',text:`Available P ${p} ppm — deficient (<10 ppm Olsen).`}); recs.push('Apply P₂O₅ 80-120 kg/ha. Use superphosphate or MAP.'); }
+    else if(p < 20)  { findings.push({icon:'⚠',color:'#B8720A',text:`Available P ${p} ppm — low (10-20 ppm).`}); recs.push('Apply P₂O₅ 40-80 kg/ha as maintenance dose.'); score+=8; }
+    else if(p <= 50) { findings.push({icon:'✓',color:'#2B5F3F',text:`Available P ${p} ppm — adequate (20-50 ppm).`}); score+=15; }
+    else             { findings.push({icon:'ℹ',color:'#B8720A',text:`Available P ${p} ppm — excessive. Risk of Zn/Fe antagonism.`}); recs.push('Reduce or eliminate P fertilization for 2-3 seasons.'); score+=10; }
+  }
+
+  // Potassium
+  if(k!==null) {
+    maxScore += 15;
+    if(k < 0.15)     { findings.push({icon:'✗',color:'#C0392B',text:`Exchangeable K ${k} me/100g — deficient.`}); recs.push('Apply K₂O 100-150 kg/ha as potassium sulfate or muriate.'); }
+    else if(k < 0.3) { findings.push({icon:'⚠',color:'#B8720A',text:`K ${k} me/100g — low.`}); recs.push('Apply K₂O 60-100 kg/ha.'); score+=8; }
+    else if(k <= 0.8){ findings.push({icon:'✓',color:'#2B5F3F',text:`K ${k} me/100g — adequate.`}); score+=15; }
+    else             { findings.push({icon:'ℹ',color:'#B8720A',text:`K ${k} me/100g — high.`}); score+=12; }
+  }
+
+  // Salinity / sodicity
+  if(ec!==null) {
+    maxScore += 15;
+    if(ec > 4.0)     { findings.push({icon:'✗',color:'#C0392B',text:`EC ${ec} dS/m — saline. Major yield loss expected.`}); recs.push('Leaching with good quality water. Gypsum application. Avoid sensitive crops.'); }
+    else if(ec > 2.0){ findings.push({icon:'⚠',color:'#B8720A',text:`EC ${ec} dS/m — moderately saline. Sensitive crops affected.`}); recs.push('Use salt-tolerant varieties. Ensure good drainage. Monitor.'); score+=8; }
+    else             { findings.push({icon:'✓',color:'#2B5F3F',text:`EC ${ec} dS/m — non-saline.`}); score+=15; }
+  }
+
+  // Sodicity (ESP)
+  if(esp!==null) {
+    maxScore += 15;
+    if(esp > 15)     { findings.push({icon:'✗',color:'#C0392B',text:`ESP ${esp.toFixed(1)}% — sodic soil. Structure collapse risk.`}); recs.push('Apply gypsum 4-8 t/ha + leaching. Avoid traffic when wet.'); }
+    else if(esp > 8) { findings.push({icon:'⚠',color:'#B8720A',text:`ESP ${esp.toFixed(1)}% — approaching sodicity.`}); recs.push('Preventive gypsum 1-2 t/ha.'); score+=8; }
+    else             { findings.push({icon:'✓',color:'#2B5F3F',text:`ESP ${esp.toFixed(1)}% — non-sodic.`}); score+=15; }
+  }
+
+  const pct = maxScore>0 ? Math.round(score/maxScore*100) : null;
+  const fertility = pct >= 75 ? 'High' : pct >= 50 ? 'Medium' : pct >= 25 ? 'Low' : 'Very low';
+  const fertColor = pct>=75 ? '#2B5F3F' : pct>=50 ? '#854F0B' : '#C0392B';
+
+  // Render
+  const badge = document.getElementById('fertility-badge');
+  if(badge) badge.innerHTML = `<span style="background:${fertColor}20;color:${fertColor};border:1px solid ${fertColor}40;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:500">Fertility: ${fertility}${pct!==null?' ('+pct+'%)':''}</span>`;
+
+  const out = document.getElementById('fertility-output');
+  if(out) {
+    out.innerHTML = findings.map(f =>
+      `<div style="display:flex;gap:8px;margin-bottom:6px;align-items:flex-start">
+        <span style="color:${f.color};font-size:14px;flex-shrink:0">${f.icon}</span>
+        <span style="color:var(--ink)">${f.text}</span>
+      </div>`
+    ).join('') +
+    (recs.length ? `<div style="margin-top:12px;padding:10px;background:var(--bg-secondary);border-radius:6px;border-left:3px solid #2B5F3F">
+      <strong style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#2B5F3F">Management recommendations</strong>
+      <ul style="margin-top:6px;padding-left:16px">${recs.map(r=>`<li style="font-size:12px;margin-bottom:4px">${r}</li>`).join('')}</ul>
+    </div>` : '');
+  }
+
+  runFertilizationRec();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FERTILIZATION RECOMMENDATION ENGINE
+// Based on FAO crop nutrient requirements × soil analysis
+// ═══════════════════════════════════════════════════════════════════════════
+const CROP_NUTRIENTS = {
+  // [N_per_t_yield, P2O5_per_t, K2O_per_t, base_N, base_P, base_K] kg/ha
+  apple:   { n_coef:2.5, p_coef:0.8, k_coef:3.5, desc:'Apple — high K demand, moderate N, low P' },
+  tomato:  { n_coef:3.0, p_coef:0.6, k_coef:4.0, desc:'Tomato — high N+K, needs regular split application' },
+  olive:   { n_coef:1.5, p_coef:0.3, k_coef:2.0, desc:'Olive — low requirements, emphasize K for oil quality' },
+  wheat:   { n_coef:2.5, p_coef:1.0, k_coef:2.0, desc:'Wheat — balanced NPK, N timing critical' },
+  maize:   { n_coef:3.5, p_coef:1.2, k_coef:3.0, desc:'Maize — high N demand, split 3x' },
+  alfalfa: { n_coef:0.0, p_coef:0.8, k_coef:2.5, desc:'Alfalfa — N-fixing, emphasize P+K' },
+  vines:   { n_coef:1.5, p_coef:0.4, k_coef:2.2, desc:'Vines — moderate requirements, quality over yield' },
+};
+
+function runFertilizationRec() {
+  const crop   = document.getElementById('fert_crop')?.value;
+  const yld    = parseFloat(document.getElementById('fert_yield')?.value) || 0;
+  const irr    = document.getElementById('fert_irr')?.value;
+  const out    = document.getElementById('fertilization-output');
+  if(!out || !crop || !yld) return;
+
+  const g = id => parseFloat(document.getElementById(id)?.value) || 0;
+  const ph=g('lab_ph'), om=g('lab_om'), p=g('lab_p_avail'), k=g('lab_k');
+  const cr = CROP_NUTRIENTS[crop];
+  if(!cr) return;
+
+  // Gross nutrient requirement
+  let N = cr.n_coef * yld;
+  let P = cr.p_coef * yld;
+  let K = cr.k_coef * yld;
+
+  // Adjust for soil supply
+  if(om >= 2.5) N *= 0.8;   // good OM reduces N need
+  if(om >= 3.5) N *= 0.75;
+  if(p  >= 20)  P *= 0.6;   // adequate soil P → reduce application
+  if(p  >= 40)  P  = 0;
+  if(k  >= 0.4) K *= 0.7;   // adequate K → reduce
+  if(k  >= 0.7) K *= 0.5;
+  if(ph > 7.5)  P *= 1.3;   // alkaline soil → P less available
+  if(!irr || irr==='no') { N*=0.75; K*=0.85; } // dryland → reduce
+
+  N=Math.round(N); P=Math.round(P); K=Math.round(K);
+
+  // Timing split
+  const splits = {
+    apple:  ['Pre-flowering (30% N, all P, 50% K)','Post-fruit set (40% N, 30% K)','Post-harvest (30% N, 20% K)'],
+    tomato: ['Transplant (20% N, all P, 30% K)','First fruit (40% N, 40% K)','Fruit growth (40% N, 30% K)'],
+    olive:  ['Spring bud break (all fertilizer in single application)'],
+    wheat:  ['Sowing (all P+K, 30% N)','Tillering (40% N)','Stem elongation (30% N)'],
+    maize:  ['Sowing (all P+K, 20% N)','V4 (40% N)','V8 (40% N)'],
+    alfalfa:['Spring (all P+K)','After each cut (K top-up)'],
+    vines:  ['Budbreak (all P, 60% K)','Post-flowering (all N)','Post-harvest (40% K)'],
+  };
+
+  out.innerHTML = `
+    <div style="padding:12px;background:var(--bg-secondary);border-radius:8px;margin-bottom:10px">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">${cr.desc}</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center">
+        <div style="background:var(--surface);border-radius:6px;padding:10px">
+          <div style="font-size:22px;font-weight:500;color:#2B5F3F">${N}</div>
+          <div style="font-size:11px;color:var(--text-muted)">kg N / ha</div>
+        </div>
+        <div style="background:var(--surface);border-radius:6px;padding:10px">
+          <div style="font-size:22px;font-weight:500;color:#2B5F3F">${P}</div>
+          <div style="font-size:11px;color:var(--text-muted)">kg P₂O₅ / ha</div>
+        </div>
+        <div style="background:var(--surface);border-radius:6px;padding:10px">
+          <div style="font-size:22px;font-weight:500;color:#2B5F3F">${K}</div>
+          <div style="font-size:11px;color:var(--text-muted)">kg K₂O / ha</div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:500;margin-bottom:6px">Application schedule:</div>
+    <ol style="font-size:12px;padding-left:16px;color:var(--ink)">
+      ${(splits[crop]||[]).map(s=>`<li style="margin-bottom:4px">${s}</li>`).join('')}
+    </ol>
+    <div style="margin-top:10px;font-size:11px;color:var(--text-muted)">
+      Adjusted for: pH ${ph||'?'}, OM ${om||'?'}%, soil P ${p||'?'} ppm, ${irr==='no'?'dryland':'irrigated'}.
+      Verify against leaf/soil tests before application.
+    </div>`;
+}
+
+function exportFertilityReport() {
+  const commune = document.getElementById('commune')?.value || 'QTTB';
+  const crop    = document.getElementById('fert_crop')?.value || '';
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Soil Fertility Report — ${commune}</title>
+  <style>body{font-family:Arial,sans-serif;padding:20px;max-width:700px;margin:auto}h1{color:#2B5F3F}table{width:100%;border-collapse:collapse}td,th{border:1px solid #ccc;padding:6px 10px;font-size:12px}</style>
+  </head><body>
+  <h1>Soil Fertility Report</h1>
+  <p><strong>Commune:</strong> ${commune} | <strong>Date:</strong> ${new Date().toLocaleDateString()} | <strong>Crop:</strong> ${crop}</p>
+  <h2>Laboratory Analysis</h2>
+  <table><tr><th>Parameter</th><th>Value</th><th>Assessment</th></tr>
+  ${[['pH',document.getElementById('lab_ph')?.value,'6.0–7.5 optimal'],
+     ['Organic Matter %',document.getElementById('lab_om')?.value,'> 2.0% satisfactory'],
+     ['Available P ppm',document.getElementById('lab_p_avail')?.value,'20–50 adequate'],
+     ['CEC me/100g',document.getElementById('lab_cec')?.value,'> 15 good'],
+     ['K me/100g',document.getElementById('lab_k')?.value,'0.3–0.8 adequate'],
+     ['EC dS/m',document.getElementById('lab_ec')?.value,'< 2.0 non-saline'],
+  ].map(([p,v,t])=>`<tr><td>${p}</td><td>${v||'—'}</td><td style="font-size:11px;color:#555">${t}</td></tr>`).join('')}
+  </table>
+  <h2>Fertility Assessment</h2>
+  <div>${document.getElementById('fertility-output')?.innerHTML||'—'}</div>
+  <h2>Fertilization Recommendation</h2>
+  <div>${document.getElementById('fertilization-output')?.innerHTML||'—'}</div>
+  </body></html>`;
+  const b = new Blob([html],{type:'text/html'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(b);
+  a.download=`soil_fertility_${commune}_${new Date().toISOString().slice(0,10)}.html`; a.click();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WATER BALANCE DSS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Crop Kc by month per crop [Jan..Dec]
+const KC_CURVES = {
+  apple:  [0.60,0.60,0.60,0.75,1.05,1.10,1.10,1.10,1.00,0.85,0.60,0.60],
+  tomato: [0.50,0.50,0.50,0.60,0.75,1.10,1.20,1.15,0.90,0.60,0.50,0.50],
+  olive:  [0.65,0.65,0.65,0.65,0.70,0.70,0.65,0.65,0.65,0.65,0.65,0.65],
+  wheat:  [0.40,0.55,0.80,1.10,1.15,0.90,0.40,0.40,0.40,0.40,0.40,0.40],
+  maize:  [0.30,0.30,0.30,0.40,0.70,1.15,1.20,1.15,0.90,0.50,0.30,0.30],
+};
+
+// Embedded monthly ERA5 data [tmax,tmin,rain,eto_day] per location (reuse ERA5 table)
+const WB_MONTHLY = {
+  fushe_kruje:[[9.6,0.8,98,0.8],[11.7,1.9,85,1.2],[15.0,5.2,72,2.0],[19.6,8.8,58,2.8],[25.4,12.4,48,3.9],[30.0,16.8,22,5.1],[33.0,19.2,18,5.8],[32.8,18.8,22,5.4],[27.6,14.8,38,3.8],[21.8,9.8,68,2.5],[15.4,4.8,105,1.4],[11.0,1.4,112,0.9]],
+  korce:      [[6.8,-3.2,52,0.6],[8.6,-1.8,45,0.9],[12.3,2.1,48,1.6],[17.8,5.8,52,2.4],[23.0,9.8,58,3.4],[27.0,13.2,38,4.5],[29.8,15.8,28,5.1],[29.6,15.2,32,4.8],[24.4,11.2,42,3.4],[18.4,6.4,62,2.2],[12.4,1.2,78,1.2],[7.8,-2.2,62,0.7]],
+  lushnje:    [[11.4,2.8,118,0.9],[13.0,3.8,96,1.3],[16.8,6.8,78,2.1],[21.4,10.2,55,3.0],[26.6,13.8,42,4.2],[31.8,17.8,18,5.5],[34.6,20.2,12,6.1],[34.4,19.8,16,5.8],[29.0,15.8,32,4.1],[22.8,10.8,72,2.6],[16.6,5.8,118,1.5],[13.0,3.2,128,1.0]],
+  vlore:      [[13.6,4.8,145,1.1],[14.4,5.8,118,1.5],[18.2,8.2,92,2.3],[22.4,11.2,58,3.2],[27.4,14.8,38,4.5],[32.8,18.8,12,5.8],[35.4,21.4,8,6.4],[35.1,21.1,10,6.1],[30.4,17.2,28,4.4],[24.2,12.2,88,3.0],[18.8,8.8,138,1.9],[15.0,5.8,158,1.2]],
+};
+
+let wbDailyData = [];
+
+function computeWaterBalance() {
+  const loc    = document.getElementById('wb_location')?.value || 'fushe_kruje';
+  const crop   = document.getElementById('wb_crop')?.value || 'apple';
+  const startS = document.getElementById('wb_start')?.value;
+  const taw    = parseFloat(document.getElementById('wb_taw')?.value) || 120;
+  const raw    = parseFloat(document.getElementById('wb_raw')?.value) || taw * 0.5;
+  const swcInit= parseFloat(document.getElementById('wb_swc_init')?.value) || taw;
+  const statusEl = document.getElementById('wb-status');
+
+  const monthly = WB_MONTHLY[loc] || WB_MONTHLY['fushe_kruje'];
+  const kc_arr  = KC_CURVES[crop] || KC_CURVES['apple'];
+
+  // Generate 365 days from season start (or Jan 1 current year if not set)
+  const start = startS ? new Date(startS) : new Date(new Date().getFullYear(), 0, 1);
+  const rows = [];
+  let swc = swcInit;
+  let gdd_cum = 0;
+
+  for(let d=0; d<365; d++) {
+    const date = new Date(start); date.setDate(start.getDate() + d);
+    const m = date.getMonth();
+    const [tmax, tmin, rain_mo, eto_d] = monthly[m];
+    const tmean = (tmax+tmin)/2;
+    const rain  = rain_mo / 30;       // daily average from monthly
+    const kc    = kc_arr[m];
+    const etc   = eto_d * kc;
+    const gdd   = Math.max(0, tmean - 10);
+    gdd_cum    += gdd;
+    const deficit = etc - rain;
+    swc = Math.min(taw, swc + rain - etc);
+    if(swc < 0) swc = 0;
+    const irr_needed = swc <= (taw - raw);
+
+    rows.push({
+      date: date.toISOString().slice(0,10),
+      tmax: tmax.toFixed(1), tmin: tmin.toFixed(1),
+      rain: rain.toFixed(1), eto: eto_d.toFixed(2), kc: kc.toFixed(2),
+      etc: etc.toFixed(2), gdd: gdd.toFixed(1), swc: swc.toFixed(1),
+      deficit: Math.max(0,deficit).toFixed(1),
+      irr: irr_needed,
+    });
+  }
+
+  wbDailyData = rows;
+  renderWBTable(rows);
+  checkIrrigationAlert(rows, raw, taw);
+  if(statusEl) statusEl.textContent = `${rows.length} days computed · loc: ${loc} · crop: ${crop} · TAW: ${taw}mm`;
+}
+
+function renderWBTable(rows) {
+  const tbody = document.getElementById('wb-tbody');
+  if(!tbody) return;
+  // Show last 60 days and today
+  const show = rows.slice(-60);
+  tbody.innerHTML = show.map(r => {
+    const irrCell = r.irr
+      ? `<td style="text-align:center;padding:4px 6px"><span style="background:#E8F2EC;color:#2B5F3F;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500">Irrigate</span></td>`
+      : `<td style="text-align:center;padding:4px 6px;color:var(--text-muted)">—</td>`;
+    const swcColor = parseFloat(r.swc) < 30 ? '#C0392B' : parseFloat(r.swc) < 60 ? '#B8720A' : '#2B5F3F';
+    return `<tr style="border-bottom:0.5px solid var(--border)">
+      <td style="padding:4px 8px;white-space:nowrap;font-size:10px">${r.date}</td>
+      <td style="padding:4px 6px;text-align:center">${r.tmax}</td>
+      <td style="padding:4px 6px;text-align:center">${r.tmin}</td>
+      <td style="padding:4px 6px;text-align:center">${r.rain}</td>
+      <td style="padding:4px 6px;text-align:center">${r.eto}</td>
+      <td style="padding:4px 6px;text-align:center">${r.kc}</td>
+      <td style="padding:4px 6px;text-align:center">${r.etc}</td>
+      <td style="padding:4px 6px;text-align:center">${r.gdd}</td>
+      <td style="padding:4px 6px;text-align:center;color:${swcColor};font-weight:500">${r.swc}</td>
+      <td style="padding:4px 6px;text-align:center">${r.deficit}</td>
+      ${irrCell}
+    </tr>`;
+  }).join('');
+}
+
+function checkIrrigationAlert(rows, raw, taw) {
+  const panel = document.getElementById('wb-alert-panel');
+  const today = rows[rows.length-1];
+  if(!today || !panel) return;
+
+  const swc = parseFloat(today.swc);
+  const deficit = taw - swc;
+  panel.style.display = 'block';
+
+  const card = document.getElementById('wb-alert-card');
+  const title = document.getElementById('wb-alert-title');
+  const text  = document.getElementById('wb-alert-text');
+  const vol   = document.getElementById('wb-volume');
+  const icon  = document.getElementById('wb-alert-icon');
+
+  if(swc <= taw - raw) {
+    card.style.borderLeft = '4px solid #C0392B';
+    icon.textContent = '⚠';
+    title.textContent = 'Irrigation required now';
+    title.style.color = '#C0392B';
+    const toApply = Math.round((taw - swc) * 0.8); // 80% refill
+    vol.textContent = toApply + ' mm';
+    text.textContent = `SWC at ${swc} mm — below RAW threshold (${(taw-raw).toFixed(0)} mm). Apply ${toApply} mm to restore field capacity.`;
+  } else if(swc <= taw - raw * 0.7) {
+    card.style.borderLeft = '4px solid #B8720A';
+    icon.textContent = '💧';
+    title.textContent = 'Irrigation advisable within 2-3 days';
+    title.style.color = '#B8720A';
+    vol.textContent = Math.round((taw - swc) * 0.6) + ' mm';
+    text.textContent = `SWC at ${swc} mm — approaching depletion threshold. Plan irrigation.`;
+  } else {
+    card.style.borderLeft = '4px solid #2B5F3F';
+    icon.textContent = '✓';
+    title.textContent = 'No irrigation needed';
+    title.style.color = '#2B5F3F';
+    vol.textContent = '0 mm';
+    text.textContent = `SWC at ${swc} mm — adequate. Check again in ${Math.round((swc-(taw-raw))/0.5)} days.`;
+  }
+}
+
+function exportWaterBalance() {
+  if(!wbDailyData.length) { alert('Run water balance first.'); return; }
+  const loc  = document.getElementById('wb_location')?.value || 'location';
+  const crop = document.getElementById('wb_crop')?.value || 'crop';
+  const hdr  = 'date,tmax,tmin,rain_mm,eto_mm,kc,etc_mm,gdd,swc_mm,deficit_mm,irrigate\n';
+  const rows = wbDailyData.map(r => `${r.date},${r.tmax},${r.tmin},${r.rain},${r.eto},${r.kc},${r.etc},${r.gdd},${r.swc},${r.deficit},${r.irr?1:0}`).join('\n');
+  const b = new Blob([hdr+rows],{type:'text/csv'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(b);
+  a.download=`water_balance_${loc}_${crop}_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+}
+
+async function loadDailyFromDB() {
+  const cfg = getDbConfig();
+  if(!cfg) { document.getElementById('wb-status').textContent='Configure database first (⚙ Database)'; return; }
+  const loc = document.getElementById('wb_location')?.value || 'fushe_kruje';
+  const statusEl = document.getElementById('wb-status');
+  statusEl.textContent = 'Loading from database…';
+  try {
+    const resp = await fetch(`${cfg.url}/rest/v1/daily_climate?location=eq.${loc}&order=date.asc`,
+      {headers:{'apikey':cfg.key,'Authorization':'Bearer '+cfg.key}});
+    if(!resp.ok) throw new Error('HTTP '+resp.status+' — run daily_climate schema in Supabase SQL Editor');
+    const data = await resp.json();
+    if(!data.length) throw new Error('No daily data for '+loc+'. Upload ERA5 CSV via Supabase Table Editor.');
+    // Convert DB rows to our format
+    wbDailyData = data.map(r => ({
+      date:r.date, tmax:r.tmax, tmin:r.tmin, rain:r.rain, eto:r.eto,
+      kc: KC_CURVES[document.getElementById('wb_crop')?.value||'apple'][new Date(r.date).getMonth()],
+      etc:(r.eto*KC_CURVES[document.getElementById('wb_crop')?.value||'apple'][new Date(r.date).getMonth()]).toFixed(2),
+      gdd:Math.max(0,(r.tmax+r.tmin)/2-10).toFixed(1),
+      swc:'—', deficit:'—', irr:false,
+    }));
+    renderWBTable(wbDailyData);
+    statusEl.textContent = `✓ Loaded ${data.length} daily records for ${loc} from database`;
+  } catch(e) {
+    statusEl.textContent = '✗ '+e.message;
+  }
+}
+
+async function fetchNDVISeries() {
+  const lat = parseFloat(document.getElementById('gps_n')?.value);
+  const lng = parseFloat(document.getElementById('gps_e')?.value);
+  const status = document.getElementById('ndvi-chart-status');
+  if(!lat||!lng) { if(status) status.textContent='Set GPS coordinates first (Soil tab → location button)'; return; }
+  const token = await getCopernicusToken();
+  if(!token) { if(status) status.textContent='Copernicus token needed — go to Meteo tab → Connect'; return; }
+  if(status) status.textContent='Fetching 12-month NDVI series…';
+
+  const d = 0.005;
+  const polygon = {type:'Polygon',coordinates:[[[lng-d,lat-d],[lng+d,lat-d],[lng+d,lat+d],[lng-d,lat+d],[lng-d,lat-d]]]};
+  const evalscript = `//VERSION=3
+function setup(){return{input:[{bands:["B04","B08","dataMask"]}],output:[{id:"ndvi",bands:1,sampleType:"FLOAT32"},{id:"dataMask",bands:1,sampleType:"UINT8"}]};}
+function evaluatePixel(s){var n=(s.B08-s.B04)/(s.B08+s.B04+0.0001);return{ndvi:[n],dataMask:[s.dataMask]};}`;
+
+  // Build 12 monthly intervals
+  const now = new Date(), intervals = [];
+  for(let i=11;i>=0;i--){
+    const from = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const to   = new Date(now.getFullYear(), now.getMonth()-i+1, 0);
+    intervals.push({from:from.toISOString().slice(0,10)+'T00:00:00Z', to:to.toISOString().slice(0,10)+'T23:59:59Z'});
+  }
+
+  const cfg = getDbConfig();
+  const proxy = cfg ? `${cfg.url}/functions/v1/copernicus-proxy` : null;
+  const labels=[], values=[];
+
+  try {
+    for(const iv of intervals) {
+      const payload = {
+        input:{bounds:{geometry:polygon,properties:{crs:'http://www.opengis.net/def/crs/OGC/1.3/CRS84'}},
+               data:[{type:'sentinel-2-l2a',dataFilter:{timeRange:iv,maxCloudCoverage:60}}]},
+        aggregation:{timeRange:iv,aggregationInterval:{of:'P30D'},evalscript,resx:10,resy:10},
+        calculations:{default:{}}
+      };
+      let result;
+      if(proxy) {
+        const r = await fetchSafe(proxy,{method:'POST',headers:{'Content-Type':'application/json','apikey':cfg.key,'Authorization':'Bearer '+cfg.key},body:JSON.stringify({action:'fetch_indices',token,lat,lng,fromDate:iv.from,toDate:iv.to})},15000);
+        result = r.ok ? await r.json() : null;
+      }
+      const ndvi = result?.ndvi ?? null;
+      labels.push(new Date(iv.from).toLocaleString('en',{month:'short',year:'2-digit'}));
+      values.push(ndvi !== null ? parseFloat(ndvi.toFixed(3)) : null);
+    }
+    drawNDVIChart(labels, values);
+    if(status) status.textContent = `✓ 12-month NDVI series loaded for ${lat.toFixed(4)}°N ${lng.toFixed(4)}°E`;
+  } catch(e) {
+    if(status) status.textContent = '✗ '+e.message;
+  }
+}
+
+function drawNDVIChart(labels, values) {
+  const canvas = document.getElementById('ndvi-chart');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth * 2;
+  canvas.height = 200 * 2;
+  ctx.scale(2,2);
+  const W = canvas.offsetWidth/2, H = 100;
+  const valid = values.filter(v=>v!==null);
+  const min = Math.min(0, ...valid), max = Math.max(1, ...valid);
+  ctx.clearRect(0,0,W,H+40);
+  // Grid
+  ctx.strokeStyle='#EAE7E0'; ctx.lineWidth=0.5;
+  [0,0.25,0.5,0.75,1.0].forEach(v=>{
+    const y = H - (v-min)/(max-min)*H + 20;
+    ctx.beginPath(); ctx.moveTo(40,y); ctx.lineTo(W-10,y); ctx.stroke();
+    ctx.fillStyle='#9E9B95'; ctx.font='9px sans-serif'; ctx.fillText(v.toFixed(2),2,y+3);
+  });
+  // Line
+  const xStep = (W-50)/(labels.length-1);
+  ctx.strokeStyle='#2B5F3F'; ctx.lineWidth=1.5; ctx.beginPath();
+  values.forEach((v,i)=>{
+    if(v===null) return;
+    const x=40+i*xStep, y=H-(v-min)/(max-min)*H+20;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  // Dots + labels
+  values.forEach((v,i)=>{
+    if(v===null) return;
+    const x=40+i*xStep, y=H-(v-min)/(max-min)*H+20;
+    ctx.fillStyle='#2B5F3F'; ctx.beginPath(); ctx.arc(x,y,3,0,2*Math.PI); ctx.fill();
+    ctx.fillStyle='#6B6860'; ctx.font='8px sans-serif'; ctx.fillText(labels[i],x-10,H+35);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RECORDS FILTER
+// ═══════════════════════════════════════════════════════════════════════════
+function filterRecords() {
+  const commune = document.getElementById('filter_commune')?.value.toLowerCase().trim() || '';
+  const area    = document.getElementById('filter_area')?.value || '';
+  const from    = document.getElementById('filter_from')?.value || '';
+  const to      = document.getElementById('filter_to')?.value || '';
+  const all     = loadRecords();
+  const filtered = all.filter(r => {
+    const s = r.soil || {};
+    if(commune && !(s.commune||'').toLowerCase().includes(commune)) return false;
+    if(area    && !(s.qttb_area||'').includes(area)) return false;
+    if(from    && s.survey_date && s.survey_date < from) return false;
+    if(to      && s.survey_date && s.survey_date > to)   return false;
+    return true;
+  });
+  const status = document.getElementById('filter-status');
+  if(status) status.textContent = filtered.length === all.length
+    ? `${all.length} record(s) total`
+    : `Showing ${filtered.length} of ${all.length} record(s)`;
+  renderRecordsList(filtered);
+}
+
+function clearFilters() {
+  ['filter_commune','filter_area','filter_from','filter_to'].forEach(id=>{
+    const el = document.getElementById(id); if(el) el.value='';
+  });
+  filterRecords();
+}
+
+function renderRecords() { filterRecords(); }
+
+function renderRecordsList(records) {
+  const container = document.getElementById('records-list');
+  if(!records||!records.length) {
+    container.innerHTML='<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:32px 0">No records match the filter.</p>';
+    return;
+  }
+  container.innerHTML = records.map(r=>{
+    const s=r.soil||{}, m=r.meteo||{};
+    const area={fushe_kruje_apple:'FK–Apple',fushe_kruje_tomato:'FK–Tomato',fushe_kruje_olive:'FK–Olive',korce_apple:'Korçë–Apple',lushnje_tomato:'Lushnje–Tomato',vlore_olive:'Vlorë–Olive'}[s.qttb_area]||s.qttb_area||'—';
+    const ndviStr = m.ndvi ? `NDVI:${m.ndvi} ` : '';
+    const tawStr  = s.taw_100 ? `TAW:${s.taw_100}mm ` : '';
+    return `<div class="record-item">
+      <div style="flex:1">
+        <div style="font-weight:500">${s.commune||'—'} · ${area} · ${s.surveyor||'—'}</div>
+        <div class="record-meta">Ref:${s.ref_no||'—'} | Date:${s.survey_date||'—'} | Soil:${s.soil_type?.slice(0,30)||'—'} | ${tawStr}${ndviStr}</div>
+      </div>
+      <div class="record-actions">
+        <button class="btn btn-outline" style="font-size:11px;padding:4px 10px" onclick="loadRecord(${r.id})">Load</button>
+        <button class="btn btn-outline" style="font-size:11px;padding:4px 10px" onclick="generateAdvisoryFromRecord(${r.id})">Advisory</button>
+        <button class="btn btn-danger"  style="font-size:11px;padding:4px 10px" onclick="deleteRecord(${r.id})">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function loadRecord(id) {
+  const r = loadRecords().find(r=>r.id===id);
+  if(!r) return;
+  fillFormFromData(r.soil||{}, r.meteo||{});
+  document.querySelectorAll('.tab')[0].click();
+  showStatus('success', `Loaded: ${r.soil?.commune||'record'} — ${r.soil?.survey_date||''}`);
+}
+
+function generateAdvisoryFromRecord(id) {
+  const r = loadRecords().find(r=>r.id===id);
+  if(!r) return;
+  fillFormFromData(r.soil||{}, r.meteo||{});
+  // Switch to advisory tab
+  document.querySelectorAll('.tab')[4].click();
+  generateAdvisory();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FARMER ADVISORY GENERATOR
+// ═══════════════════════════════════════════════════════════════════════════
+function generateAdvisory() {
+  const farmer  = document.getElementById('farmer_name')?.value || 'Farmer';
+  const contact = document.getElementById('farmer_contact')?.value || '';
+  const advDate = document.getElementById('advisory_date')?.value || new Date().toISOString().slice(0,10);
+  const commune = document.getElementById('commune')?.value || '—';
+  const crop    = ({korce_apple:'Apple',lushnje_tomato:'Tomato',vlore_olive:'Olive',fushe_kruje_apple:'Apple trial',fushe_kruje_tomato:'Tomato trial',fushe_kruje_olive:'Olive trial'})[document.getElementById('qttb_area')?.value]||'—';
+  const gpsN    = document.getElementById('gps_n')?.value||'—';
+  const gpsE    = document.getElementById('gps_e')?.value||'—';
+  const suitability = document.getElementById('flooding_info')?.value||'—';
+  const soilType = document.getElementById('soil_type')?.value||'—';
+  const taw     = document.getElementById('taw_100')?.value||'—';
+  const erosion = ({0:'None',1:'Low',2:'Moderate',3:'High'})[document.getElementById('erosion_risk')?.value]||'—';
+  const ndvi    = document.getElementById('ndvi')?.value||'—';
+  const eto     = document.getElementById('eto')?.value||'—';
+  const rain    = document.getElementById('rainfall_monthly')?.value||'—';
+  const wstress = document.getElementById('water_stress_class')?.value||'—';
+  const drisk   = document.getElementById('disease_risk')?.value||'—';
+
+  // Water balance summary from wb table
+  const wbAlert = document.getElementById('wb-alert-title')?.textContent||'';
+  const wbVol   = document.getElementById('wb-volume')?.textContent||'';
+
+  // Fertilization
+  const fertOut = document.getElementById('fertilization-output')?.innerText?.slice(0,300)||'';
+  const fertRec = document.getElementById('fertilization-output') ? '(See fertilization tab)' : '';
+
+  const html = `
+  <div id="advisory-print" style="font-family:Georgia,serif;max-width:680px;margin:auto;padding:24px;border:1px solid #ccc;border-radius:8px;background:#fff;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #2B5F3F;padding-bottom:12px;margin-bottom:16px">
+      <div>
+        <div style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#6B6860">QTTB · Agronomic Advisory</div>
+        <div style="font-size:20px;font-weight:600;color:#1A1916;margin-top:4px">${farmer}</div>
+        <div style="font-size:13px;color:#6B6860">${commune} · ${crop} · ${advDate}</div>
+        ${contact?`<div style="font-size:12px;color:#2B5F3F;margin-top:2px">📞 ${contact}</div>`:''}
+      </div>
+      <div style="text-align:right;font-size:11px;color:#9E9B95">
+        <div>GPS: ${gpsN}°N ${gpsE}°E</div>
+        <div>Survey: ${document.getElementById('survey_date')?.value||'—'}</div>
+        <div>Ref: ${document.getElementById('ref_no')?.value||'—'}</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#6B6860;margin-bottom:8px">Soil profile</div>
+        ${row('Soil type',soilType.slice(0,40))}
+        ${row('Suitability class',suitability)}
+        ${row('TAW (0–100cm)',taw+' mm')}
+        ${row('Erosion risk',erosion)}
+      </div>
+      <div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#6B6860;margin-bottom:8px">Current conditions</div>
+        ${row('NDVI (Sentinel-2)',ndvi)}
+        ${row('Monthly rainfall',rain+' mm')}
+        ${row('ETo',eto+' mm/day')}
+        ${row('Water stress',wstress)}
+        ${row('Disease risk',drisk)}
+      </div>
+    </div>
+
+    ${wbAlert ? `<div style="padding:12px;background:${wbAlert.includes('required')?'#FCEBEB':wbAlert.includes('advisable')?'#FAEEDA':'#EAF3DE'};border-radius:6px;margin-bottom:16px">
+      <div style="font-weight:600;color:${wbAlert.includes('required')?'#791F1F':wbAlert.includes('advisable')?'#633806':'#27500A'}">${wbAlert}</div>
+      <div style="font-size:12px;margin-top:4px">${wbVol ? 'Apply '+wbVol+' to restore soil water content.' : ''}</div>
+    </div>` : ''}
+
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#6B6860;margin-bottom:8px">Recommendations</div>
+      <div style="font-size:13px;line-height:1.8;color:#1A1916">
+        ${document.getElementById('observations')?.value||'No specific observations recorded.'}
+      </div>
+    </div>
+
+    ${fertOut ? `<div style="margin-bottom:16px;padding:12px;background:#F2F9F5;border-radius:6px;border-left:3px solid #2B5F3F">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#2B5F3F;margin-bottom:6px">Fertilization</div>
+      <div style="font-size:12px;line-height:1.6">${fertOut}</div>
+    </div>` : ''}
+
+    <div style="border-top:1px solid #EAE7E0;padding-top:10px;font-size:10px;color:#9E9B95;display:flex;justify-content:space-between">
+      <span>QTTB DSS · Studio Bagnara &amp; Cà Colonna srl</span>
+      <span>Generated: ${new Date().toLocaleString()}</span>
+    </div>
+  </div>`;
+
+  function row(k,v) {
+    return `<div style="display:flex;justify-content:space-between;border-bottom:0.5px solid #EAE7E0;padding:4px 0;font-size:12px">
+      <span style="color:#6B6860">${k}</span><span style="font-weight:500">${v||'—'}</span></div>`;
+  }
+
+  const out = document.getElementById('advisory-output');
+  if(out) { out.style.display='block'; out.innerHTML = html; }
+}
+
+function printAdvisory() {
+  const content = document.getElementById('advisory-print');
+  if(!content) { generateAdvisory(); setTimeout(printAdvisory, 200); return; }
+  const w = window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>QTTB Advisory</title>
+  <style>body{margin:20px;font-family:Georgia,serif;}</style></head><body>${content.outerHTML}</body></html>`);
+  w.document.close(); w.print();
+}
+
+function whatsappAdvisory() {
+  const farmer  = document.getElementById('farmer_name')?.value||'';
+  const commune = document.getElementById('commune')?.value||'—';
+  const crop    = document.getElementById('qttb_area')?.value||'—';
+  const ndvi    = document.getElementById('ndvi')?.value||'—';
+  const wbAlert = document.getElementById('wb-alert-title')?.textContent||'';
+  const wbVol   = document.getElementById('wb-volume')?.textContent||'';
+  const contact = (document.getElementById('farmer_contact')?.value||'').replace(/\D/g,'');
+
+  const msg = encodeURIComponent(
+    `QTTB Advisory — ${farmer||commune}
+` +
+    `📍 ${commune} · ${crop}
+` +
+    `🌿 NDVI: ${ndvi}
+` +
+    `💧 ${wbAlert}${wbVol?' · Apply '+wbVol:''}
+` +
+    `📋 Full report from your QTTB agronomist.`
+  );
+  const url = contact
+    ? `https://wa.me/${contact}?text=${msg}`
+    : `https://wa.me/?text=${msg}`;
+  window.open(url, '_blank');
+}
+
+function emailAdvisory() {
+  const farmer  = document.getElementById('farmer_name')?.value||'Farmer';
+  const commune = document.getElementById('commune')?.value||'—';
+  const subject = encodeURIComponent(`QTTB Agronomic Advisory — ${farmer} — ${commune}`);
+  const body    = encodeURIComponent(
+    `Dear ${farmer},
+
+Please find your QTTB agronomic advisory below.
+
+` +
+    document.getElementById('advisory-print')?.innerText?.slice(0,1000)||'');
+  window.location.href = `mailto:?subject=${subject}&body=${body}`;
+}
+
 
 buildHorizons();
 updateRecordCount();
