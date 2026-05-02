@@ -1511,10 +1511,10 @@
 <div id="tab-map" style="display:none">
   <div style="padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
     <strong style="font-size:11px;color:#6B6860;margin-right:4px">Jump to:</strong>
-    <button onclick="mapJumpTo(41.492,19.716,13,'Fushë Krujë')" class="map-city-btn">📍 Fushë Krujë</button>
-    <button onclick="mapJumpTo(40.618,20.778,13,'Korçë')"        class="map-city-btn">📍 Korçë</button>
-    <button onclick="mapJumpTo(40.942,19.705,13,'Lushnje')"      class="map-city-btn">📍 Lushnje</button>
-    <button onclick="mapJumpTo(40.468,19.483,13,'Vlorë')"        class="map-city-btn">📍 Vlorë</button>
+    <button onclick="mapJumpTo(41.492,19.716,13,'Fushë Krujë')" class="map-city-btn" data-city="Fushë Krujë">📍 Fushë Krujë</button>
+    <button onclick="mapJumpTo(40.618,20.778,13,'Korçë')"        class="map-city-btn" data-city="Korçë">📍 Korçë</button>
+    <button onclick="mapJumpTo(40.942,19.705,13,'Lushnje')"      class="map-city-btn" data-city="Lushnje">📍 Lushnje</button>
+    <button onclick="mapJumpTo(40.468,19.483,13,'Vlorë')"        class="map-city-btn" data-city="Vlorë">📍 Vlorë</button>
     <div style="width:1px;background:#D8D4CC;height:18px;margin:0 6px;flex-shrink:0"></div>
     <strong style="font-size:11px;color:#6B6860;margin-right:4px">Layers:</strong>
     <div class="layer-toggle on" id="tog-landuse"     onclick="toggleMapLayer('landuse',this)"><div class="layer-dot" style="background:#2B5F3F"></div>Land use</div>
@@ -2045,9 +2045,9 @@ function mapJumpTo(lat, lng, zoom, label) {
   if(!mapInstance) { initMap(); setTimeout(()=>mapJumpTo(lat,lng,zoom,label), 800); return; }
   mapInstance.setView([lat, lng], zoom);
   // Update button styles — highlight active city
-  const btns = document.querySelectorAll('[onclick^="mapJumpTo"]');
+  const btns = document.querySelectorAll('.map-city-btn');
   btns.forEach(b => b.classList.remove('active'));
-  const active = Array.from(btns).find(b => b.textContent.includes(label));
+  const active = Array.from(btns).find(b => b.dataset.city === label);
   if(active) active.classList.add('active');
   const info = document.getElementById('map-click-info');
   if(info) info.textContent = '📍 ' + label;
