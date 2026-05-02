@@ -337,7 +337,9 @@
     .layer-toggle { display:flex; align-items:center; gap:5px; padding:4px 10px; border:1px solid #D8D4CC; border-radius:20px; cursor:pointer; background:#fff; color:#6B6860; transition:all 0.15s; user-select:none; }
     .layer-toggle.on { background:#E8F2EC; border-color:#2B5F3F; color:#1D4029; }
     .layer-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-    .map-info { background:#fff; border:1px solid #D8D4CC; border-radius:6px; padding:8px 14px; font-size:11px; color:#6B6860; display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+    .map-city-btn { font-size:12px;padding:5px 14px;border:1px solid #D8D4CC;border-radius:20px;background:#fff;cursor:pointer;font-family:inherit;color:#1A1916;transition:all 0.15s; }
+  .map-city-btn.active { border-color:#2B5F3F;color:#2B5F3F;background:#EAF3DE; }
+  .map-info { background:#fff; border:1px solid #D8D4CC; border-radius:6px; padding:8px 14px; font-size:11px; color:#6B6860; display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
     .map-info span { font-family:'IBM Plex Mono',monospace; }
   </style>
 </head>
@@ -1509,10 +1511,10 @@
 <div id="tab-map" style="display:none">
   <div style="padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
     <strong style="font-size:11px;color:#6B6860;margin-right:4px">Jump to:</strong>
-    <button onclick="mapJumpTo(41.492,19.716,13,'Fushë Krujë')" style="font-size:12px;padding:5px 14px;border:1px solid #2B5F3F;border-radius:20px;background:#fff;cursor:pointer;color:#2B5F3F;font-family:inherit">📍 Fushë Krujë</button>
-    <button onclick="mapJumpTo(40.618,20.778,13,'Korçë')"        style="font-size:12px;padding:5px 14px;border:1px solid #D8D4CC;border-radius:20px;background:#fff;cursor:pointer;font-family:inherit">📍 Korçë</button>
-    <button onclick="mapJumpTo(40.942,19.705,13,'Lushnje')"      style="font-size:12px;padding:5px 14px;border:1px solid #D8D4CC;border-radius:20px;background:#fff;cursor:pointer;font-family:inherit">📍 Lushnje</button>
-    <button onclick="mapJumpTo(40.468,19.483,13,'Vlorë')"        style="font-size:12px;padding:5px 14px;border:1px solid #D8D4CC;border-radius:20px;background:#fff;cursor:pointer;font-family:inherit">📍 Vlorë</button>
+    <button onclick="mapJumpTo(41.492,19.716,13,'Fushë Krujë')" class="map-city-btn">📍 Fushë Krujë</button>
+    <button onclick="mapJumpTo(40.618,20.778,13,'Korçë')"        class="map-city-btn">📍 Korçë</button>
+    <button onclick="mapJumpTo(40.942,19.705,13,'Lushnje')"      class="map-city-btn">📍 Lushnje</button>
+    <button onclick="mapJumpTo(40.468,19.483,13,'Vlorë')"        class="map-city-btn">📍 Vlorë</button>
     <div style="width:1px;background:#D8D4CC;height:18px;margin:0 6px;flex-shrink:0"></div>
     <strong style="font-size:11px;color:#6B6860;margin-right:4px">Layers:</strong>
     <div class="layer-toggle on" id="tog-landuse"     onclick="toggleMapLayer('landuse',this)"><div class="layer-dot" style="background:#2B5F3F"></div>Land use</div>
@@ -2042,6 +2044,11 @@ function initMap() {
 function mapJumpTo(lat, lng, zoom, label) {
   if(!mapInstance) { initMap(); setTimeout(()=>mapJumpTo(lat,lng,zoom,label), 800); return; }
   mapInstance.setView([lat, lng], zoom);
+  // Update button styles — highlight active city
+  const btns = document.querySelectorAll('[onclick^="mapJumpTo"]');
+  btns.forEach(b => b.classList.remove('active'));
+  const active = Array.from(btns).find(b => b.textContent.includes(label));
+  if(active) active.classList.add('active');
   const info = document.getElementById('map-click-info');
   if(info) info.textContent = '📍 ' + label;
 }
