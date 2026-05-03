@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QTTB DSS — Expert Configuration Panel</title>
+<style>
+:root {
+  --green:     #2B5F3F;
+  --green-lt:  #EAF3DE;
+  --green-mid: #b0d9be;
+  --amber:     #B8720A;
+  --amber-lt:  #FAEEDA;
+  --red:       #C0392B;
+  --red-lt:    #FCEBEB;
+  --blue:      #185FA5;
+  --blue-lt:   #E6F1FB;
+  --ink:       #1A1916;
+  --muted:     #6B6860;
+  --border:    #EAE7E0;
+  --surface:   #fff;
+  --bg:        #F8F6F0;
+  --mono:      'IBM Plex Mono', 'Courier New', monospace;
+  --sans:      'Inter', Arial, sans-serif;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:var(--sans); font-size:13px; color:var(--ink); background:var(--bg); }
+
+/* HEADER */
+header { background:var(--green); color:#fff; padding:0 32px; display:flex; align-items:center; gap:16px; height:52px; }
+header .logo { font-size:15px; font-weight:600; letter-spacing:-0.01em; }
+header .subtitle { font-size:11px; opacity:0.7; margin-left:4px; }
+header nav { margin-left:auto; display:flex; gap:4px; }
+header nav a { color:rgba(255,255,255,0.75); text-decoration:none; font-size:12px; padding:5px 12px; border-radius:4px; }
+header nav a:hover, header nav a.active { background:rgba(255,255,255,0.15); color:#fff; }
+.save-btn { background:#fff; color:var(--green); border:none; font-size:12px; font-weight:600; padding:6px 16px; border-radius:20px; cursor:pointer; font-family:inherit; }
+.save-btn:hover { background:var(--green-lt); }
+
+/* LAYOUT */
+.layout { display:grid; grid-template-columns:260px 1fr 300px; height:calc(100vh - 52px); overflow:hidden; }
+
+/* SIDEBAR — variables */
+.sidebar { background:var(--surface); border-right:1px solid var(--border); overflow-y:auto; }
+.sidebar-title { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); padding:14px 16px 8px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--surface); z-index:1; }
+.var-group { padding:10px 0; border-bottom:1px solid var(--border); }
+.var-group-label { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--green); padding:4px 16px 6px; }
+.var-chip { display:flex; align-items:center; gap:8px; padding:5px 16px; cursor:grab; user-select:none; transition:background 0.1s; }
+.var-chip:hover { background:var(--bg); }
+.var-chip:active { cursor:grabbing; }
+.var-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.var-name { font-size:11px; font-weight:500; color:var(--ink); }
+.var-unit { font-size:10px; color:var(--muted); margin-left:auto; font-family:var(--mono); }
+.var-chip.dragging { opacity:0.5; }
+
+/* MAIN — formula builder */
+.main { overflow-y:auto; }
+.panel { background:var(--surface); margin:16px; border:1px solid var(--border); border-radius:8px; }
+.panel-header { padding:14px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; }
+.panel-title { font-size:13px; font-weight:600; color:var(--ink); }
+.panel-sub { font-size:11px; color:var(--muted); margin-left:4px; }
+.panel-body { padding:18px; }
+
+/* TABS */
+.tabs { display:flex; border-bottom:1px solid var(--border); padding:0 18px; background:var(--surface); border-radius:8px 8px 0 0; }
+.tab-btn { padding:10px 16px; font-size:12px; font-weight:400; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; user-select:none; }
+.tab-btn.active { color:var(--green); border-bottom-color:var(--green); font-weight:500; }
+
+/* FORMULA BUILDER */
+.formula-zone { background:var(--bg); border:2px dashed var(--border); border-radius:6px; padding:14px; min-height:64px; display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin:10px 0; font-family:var(--mono); font-size:13px; cursor:text; }
+.formula-zone.drag-over { border-color:var(--green); background:var(--green-lt); }
+.f-token { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:500; }
+.f-var    { background:var(--blue-lt); color:var(--blue); }
+.f-op     { background:var(--bg); border:1px solid var(--border); color:var(--ink); padding:3px 8px; border-radius:4px; cursor:pointer; font-family:var(--mono); }
+.f-op:hover { background:var(--border); }
+.f-const  { background:var(--amber-lt); color:var(--amber); }
+.f-remove { cursor:pointer; opacity:0.5; font-size:10px; margin-left:2px; }
+.f-remove:hover { opacity:1; color:var(--red); }
+.f-placeholder { color:var(--muted); font-size:12px; font-style:italic; }
+
+.op-bar { display:flex; gap:4px; flex-wrap:wrap; margin:8px 0; }
+.op-btn { padding:4px 12px; border:1px solid var(--border); border-radius:4px; background:var(--surface); cursor:pointer; font-family:var(--mono); font-size:12px; font-weight:500; color:var(--ink); }
+.op-btn:hover { background:var(--bg); border-color:var(--green); color:var(--green); }
+
+/* THRESHOLD TABLE */
+.thresh-table { width:100%; border-collapse:collapse; margin-top:10px; font-size:12px; }
+.thresh-table th { background:var(--bg); padding:7px 10px; font-weight:500; text-align:left; font-size:11px; color:var(--muted); border-bottom:1px solid var(--border); }
+.thresh-table td { padding:6px 8px; border-bottom:0.5px solid var(--border); vertical-align:middle; }
+.thresh-table input[type=number] { width:80px; padding:4px 6px; border:1px solid var(--border); border-radius:4px; font-size:12px; font-family:inherit; }
+.thresh-table input[type=text] { width:120px; padding:4px 6px; border:1px solid var(--border); border-radius:4px; font-size:12px; font-family:inherit; }
+.level-dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; }
+
+/* INDICATOR LIBRARY */
+.right-panel { background:var(--surface); border-left:1px solid var(--border); overflow-y:auto; }
+.ind-card { border-bottom:1px solid var(--border); padding:12px 16px; cursor:pointer; transition:background 0.1s; }
+.ind-card:hover { background:var(--bg); }
+.ind-card.active { background:var(--green-lt); border-left:3px solid var(--green); }
+.ind-name { font-size:12px; font-weight:500; color:var(--ink); margin-bottom:3px; }
+.ind-meta { font-size:10px; color:var(--muted); font-family:var(--mono); }
+.ind-badges { display:flex; gap:4px; margin-top:5px; flex-wrap:wrap; }
+.badge { font-size:9px; font-weight:600; padding:2px 7px; border-radius:20px; text-transform:uppercase; letter-spacing:0.04em; }
+.b-g { background:var(--green-lt); color:var(--green); }
+.b-a { background:var(--amber-lt); color:var(--amber); }
+.b-r { background:var(--red-lt); color:var(--red); }
+.b-b { background:var(--blue-lt); color:var(--blue); }
+.b-m { background:var(--bg); color:var(--muted); border:1px solid var(--border); }
+
+/* GRID */
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+.field label { font-size:10px; font-weight:500; color:var(--muted); display:block; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.05em; }
+.field input, .field select, .field textarea { width:100%; padding:7px 10px; border:1px solid var(--border); border-radius:5px; font-size:12px; font-family:inherit; background:var(--surface); color:var(--ink); }
+.field input:focus, .field select:focus { outline:none; border-color:var(--green); }
+
+/* KcCURVES EDITOR */
+.kc-grid { display:grid; grid-template-columns:repeat(12,1fr); gap:4px; margin:8px 0; }
+.kc-month { text-align:center; }
+.kc-month .month-label { font-size:9px; color:var(--muted); margin-bottom:3px; font-weight:500; }
+.kc-month input { width:100%; padding:4px 2px; border:1px solid var(--border); border-radius:4px; text-align:center; font-size:11px; font-family:var(--mono); }
+.kc-bar-wrap { height:60px; display:flex; align-items:flex-end; justify-content:center; margin-top:4px; }
+.kc-bar { width:20px; background:var(--green); border-radius:3px 3px 0 0; transition:height 0.2s; }
+
+/* SCORING WEIGHTS */
+.weight-row { display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:0.5px solid var(--border); }
+.weight-label { font-size:12px; flex:1; }
+.weight-slider { flex:2; accent-color:var(--green); }
+.weight-pct { font-size:12px; font-family:var(--mono); color:var(--green); width:36px; text-align:right; }
+
+/* STATUS */
+.status-bar { padding:8px 18px; background:var(--green-lt); border-top:1px solid var(--green-mid); font-size:11px; color:var(--green); display:flex; align-items:center; gap:8px; }
+.status-bar.warn { background:var(--amber-lt); border-color:#e8c17a; color:var(--amber); }
+
+/* PREVIEW */
+.preview-box { background:var(--bg); border-radius:6px; padding:14px; margin-top:10px; font-size:12px; font-family:var(--mono); color:var(--ink); line-height:1.8; }
+.preview-box .result { font-size:18px; font-weight:600; color:var(--green); }
+
+/* MISC */
+.btn { padding:7px 16px; border-radius:5px; font-size:12px; font-weight:500; cursor:pointer; font-family:inherit; border:none; }
+.btn-green { background:var(--green); color:#fff; }
+.btn-green:hover { background:#234d33; }
+.btn-outline { background:none; border:1px solid var(--border); color:var(--ink); }
+.btn-outline:hover { border-color:var(--green); color:var(--green); }
+.btn-red { background:none; border:1px solid var(--border); color:var(--red); }
+.mt { margin-top:12px; }
+.flex { display:flex; gap:8px; align-items:center; }
+.sep { width:1px; height:16px; background:var(--border); }
+
+@media (max-width:900px) {
+  .layout { grid-template-columns:1fr; }
+  .sidebar, .right-panel { display:none; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <span class="logo">QTTB DSS</span>
+    <span class="subtitle">Expert Configuration Panel</span>
+  </div>
+  <nav>
+    <a href="index.html">← Back to DSS</a>
+    <a href="#" class="active">Indicators</a>
+    <a href="#" onclick="showSection('kc')">Kc curves</a>
+    <a href="#" onclick="showSection('fertility')">Fertility rules</a>
+    <a href="#" onclick="showSection('scoring')">DSS scoring</a>
+  </nav>
+  <button class="save-btn" onclick="saveAllToSupabase()">Save all configuration</button>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT: Available variables -->
+  <div class="sidebar">
+    <div class="sidebar-title">Available variables — drag into formula</div>
+
+    <div class="var-group">
+      <div class="var-group-label">📍 Soil survey</div>
+      <div class="var-chip" draggable="true" data-var="ph" data-unit="–" ondragstart="startDrag(event,'ph','pH water','soil')"><div class="var-dot" style="background:#9B6A3A"></div><span class="var-name">pH</span><span class="var-unit">–</span></div>
+      <div class="var-chip" draggable="true" data-var="cec" data-unit="me/100g" ondragstart="startDrag(event,'cec','CEC','soil')"><div class="var-dot" style="background:#9B6A3A"></div><span class="var-name">CEC</span><span class="var-unit">me/100g</span></div>
+      <div class="var-chip" draggable="true" data-var="om" data-unit="%" ondragstart="startDrag(event,'om','Organic matter','soil')"><div class="var-dot" style="background:#9B6A3A"></div><span class="var-name">Organic matter</span><span class="var-unit">%</span></div>
+      <div class="var-chip" draggable="true" data-var="p_avail" data-unit="ppm" ondragstart="startDrag(event,'p_avail','Avail. P','soil')"><div class="var-dot" style="background:#9B6A3A"></div><span class="var-name">Available P</span><span class="var-unit">ppm</span></div>
+      <div class="var-chip" draggable="true" data-var="k_exch" data-unit="me/100g" ondragstart="startDrag(event,'k_exch','Exchg. K','soil')"><div class="var-dot" style="background:#9B6A3A"></div><span class="var-name">Exchangeable K</span><span class="var-unit">me/100g</span></div>
+      <div class="var-chip" draggable="true" data-var="ec" data-unit="dS/m" ondragstart="startDrag(event,'ec','EC','soil')"><div class="var-dot" style="background:#9B6A3A"></div><span class="var-name">EC (salinity)</span><span class="var-unit">dS/m</span></div>
+      <div class="var-chip" draggable="true" data-var="taw" data-unit="mm" ondragstart="startDrag(event,'taw','TAW 0-100cm','soil')"><div class="var-dot" style="background:#9B6A3A"></div><span class="var-name">TAW (0–100cm)</span><span class="var-unit">mm</span></div>
+      <div class="var-chip" draggable="true" data-var="slope_pct" data-unit="%" ondragstart="startDrag(event,'slope_pct','Slope','soil')"><div class="var-dot" style="background:#9B6A3A"></div><span class="var-name">Slope</span><span class="var-unit">%</span></div>
+      <div class="var-chip" draggable="true" data-var="erosion_risk" data-unit="0-4" ondragstart="startDrag(event,'erosion_risk','Erosion risk','soil')"><div class="var-dot" style="background:#9B6A3A"></div><span class="var-name">Erosion risk class</span><span class="var-unit">0–4</span></div>
+    </div>
+
+    <div class="var-group">
+      <div class="var-group-label">🌤 Meteo / climate</div>
+      <div class="var-chip" draggable="true" ondragstart="startDrag(event,'eto','ETo','meteo')"><div class="var-dot" style="background:#185FA5"></div><span class="var-name">ETo</span><span class="var-unit">mm/day</span></div>
+      <div class="var-chip" draggable="true" ondragstart="startDrag(event,'rain','Rainfall','meteo')"><div class="var-dot" style="background:#185FA5"></div><span class="var-name">Rainfall</span><span class="var-unit">mm/mo</span></div>
+      <div class="var-chip" draggable="true" ondragstart="startDrag(event,'tmax','T max','meteo')"><div class="var-dot" style="background:#185FA5"></div><span class="var-name">T max</span><span class="var-unit">°C</span></div>
+      <div class="var-chip" draggable="true" ondragstart="startDrag(event,'tmin','T min','meteo')"><div class="var-dot" style="background:#185FA5"></div><span class="var-name">T min</span><span class="var-unit">°C</span></div>
+      <div class="var-chip" draggable="true" ondragstart="startDrag(event,'tmean','T mean','meteo')"><div class="var-dot" style="background:#185FA5"></div><span class="var-name">T mean</span><span class="var-unit">°C</span></div>
+      <div class="var-chip" draggable="true" ondragstart="startDrag(event,'gdd','GDD','meteo')"><div class="var-dot" style="background:#185FA5"></div><span class="var-name">GDD (base 10°C)</span><span class="var-unit">°C·d</span></div>
+      <div class="var-chip" draggable="true" ondragstart="startDrag(event,'chill','Chill hours','meteo')"><div class="var-dot" style="background:#185FA5"></div><span class="var-name">Chilling hours</span><span class="var-unit">h</span></div>
+      <div class="var-chip" draggable="true" ondragstart="startDrag(event,'rh','RH mean','meteo')"><div class="var-dot" style="background:#185FA5"></div><span class="var-name">RH mean</span><span class="var-unit">%</span></div>
+      <div class="var-chip" draggable="true" ondragstart="startDrag(event,'solar','Solar rad.','meteo')"><div class="var-dot" style="background:#185FA5"></div><span class="var-name">Solar radiation</span><span class="var-unit">MJ/m²</span></div>
+      <div class="var-chip" draggable="true" ondragstart="startDrag(event,'wind','Wind speed','meteo')"><div class="var-dot" style="background:#185FA5"></div><span class="var-name">Wind speed</span><span class="var-unit">m/s</span></div>
+    </div>
+
+    <div class="var-group">
+      <div class="var-group-label">🛰 Copernicus / satellite</div>
+      <div class="var-chip" draggable="true" ondragstart="startDrag(event,'ndvi','NDVI','remote')"><div class="var-dot" style="background:#2B5F3F"></div><span class="var-name">NDVI</span><span class="var-unit">–1→+1</span></div>
+      <div class="var-chip" draggable="true" ondragstart="startDrag(event,'evi','EVI','remote')"><div class="var-dot" style="background:#2B5F3F"></div><span class="var-name">EVI</span><span class="var-unit">–1→+1</span></div>
+      <div class="var-chip" draggable="true" ondragstart="startDrag(event,'ndwi','NDWI','remote')"><div class="var-dot" style="background:#2B5F3F"></div><span class="var-name">NDWI</span><span class="var-unit">–1→+1</span></div>
+    </div>
+
+    <div class="var-group">
+      <div class="var-group-label">💧 Water balance</div>
+      <div class="var-chip" draggable="true" ondragstart="startDrag(event,'swc','SWC','wb')"><div class="var-dot" style="background:#4A7AB0"></div><span class="var-name">SWC</span><span class="var-unit">mm</span></div>
+      <div class="var-chip" draggable="true" ondragstart="startDrag(event,'etc','ETc','wb')"><div class="var-dot" style="background:#4A7AB0"></div><span class="var-name">ETc (crop)</span><span class="var-unit">mm/day</span></div>
+      <div class="var-chip" draggable="true" ondragstart="startDrag(event,'deficit','Deficit','wb')"><div class="var-dot" style="background:#4A7AB0"></div><span class="var-name">Water deficit</span><span class="var-unit">mm</span></div>
+      <div class="var-chip" draggable="true" ondragstart="startDrag(event,'kc','Kc','wb')"><div class="var-dot" style="background:#4A7AB0"></div><span class="var-name">Kc (crop coeff)</span><span class="var-unit">–</span></div>
+    </div>
+
+    <div class="var-group" style="border:none">
+      <div class="var-group-label">🌿 Qualitative / DSS</div>
+      <div class="var-chip" draggable="true" ondragstart="startDrag(event,'disease_risk','Disease risk','qual')"><div class="var-dot" style="background:#C0392B"></div><span class="var-name">Disease risk score</span><span class="var-unit">0–3</span></div>
+      <div class="var-chip" draggable="true" ondragstart="startDrag(event,'plant_health','Plant health','qual')"><div class="var-dot" style="background:#C0392B"></div><span class="var-name">Plant health score</span><span class="var-unit">1–5</span></div>
+      <div class="var-chip" draggable="true" ondragstart="startDrag(event,'phenology','Phenology stage','qual')"><div class="var-dot" style="background:#C0392B"></div><span class="var-name">Phenology stage</span><span class="var-unit">1–8</span></div>
+    </div>
+  </div>
+
+  <!-- MAIN: Builder -->
+  <div class="main">
+
+    <!-- INDICATOR BUILDER -->
+    <div id="section-indicators" class="panel">
+      <div class="tabs">
+        <div class="tab-btn active" onclick="switchTab('builder',this)">Formula builder</div>
+        <div class="tab-btn" onclick="switchTab('kc',this)">Kc curves</div>
+        <div class="tab-btn" onclick="switchTab('fertility',this)">Fertility rules</div>
+        <div class="tab-btn" onclick="switchTab('scoring',this)">DSS scoring</div>
+      </div>
+
+      <!-- FORMULA BUILDER TAB -->
+      <div id="tab-builder" class="panel-body">
+        <div class="grid-2">
+          <div class="field">
+            <label>Indicator name</label>
+            <input type="text" id="ind-name" placeholder="e.g. Water Stress Index">
+          </div>
+          <div class="field">
+            <label>Category</label>
+            <select id="ind-category">
+              <option value="water">Water balance / Irrigation</option>
+              <option value="soil">Soil fertility</option>
+              <option value="vegetation">Vegetation / Copernicus</option>
+              <option value="climate">Climate / Phenology</option>
+              <option value="composite">Composite / Multi-source</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid-2 mt">
+          <div class="field">
+            <label>Applies to crop</label>
+            <select id="ind-crop">
+              <option value="all">All crops</option>
+              <option value="apple">Apple (Korçë)</option>
+              <option value="tomato">Tomato (Lushnje)</option>
+              <option value="olive">Olive (Vlorë)</option>
+              <option value="wheat">Wheat</option>
+              <option value="maize">Maize</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Temporal resolution</label>
+            <select id="ind-temporal">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="seasonal">Seasonal</option>
+              <option value="survey">Per survey (static)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-top:14px">
+          <label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted)">Formula — drag variables from the left panel or use the operator buttons</label>
+          <div class="op-bar" style="margin-top:6px">
+            <button class="op-btn" onclick="addOp('+')">+</button>
+            <button class="op-btn" onclick="addOp('−')">−</button>
+            <button class="op-btn" onclick="addOp('×')">×</button>
+            <button class="op-btn" onclick="addOp('÷')">÷</button>
+            <button class="op-btn" onclick="addOp('(')">(</button>
+            <button class="op-btn" onclick="addOp(')')">)</button>
+            <div class="sep"></div>
+            <button class="op-btn" onclick="addConst()">number</button>
+            <button class="op-btn" onclick="addOp('max(·,·)')">max</button>
+            <button class="op-btn" onclick="addOp('min(·,·)')">min</button>
+            <button class="op-btn" onclick="addOp('IF(·>·,·,·)')">IF</button>
+            <div class="sep"></div>
+            <button class="op-btn btn-outline" style="color:var(--red);border-color:var(--red)" onclick="clearFormula()">Clear</button>
+          </div>
+          <div class="formula-zone" id="formula-zone"
+            ondragover="event.preventDefault();this.classList.add('drag-over')"
+            ondragleave="this.classList.remove('drag-over')"
+            ondrop="dropVar(event)">
+            <span class="f-placeholder">← Drag a variable here, or click an operator above</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">
+            Formula: <span id="formula-text" style="font-family:var(--mono);color:var(--ink)">—</span>
+          </div>
+        </div>
+
+        <div style="margin-top:16px">
+          <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);margin-bottom:8px">Alert thresholds</div>
+          <table class="thresh-table">
+            <thead>
+              <tr>
+                <th>Level</th>
+                <th>Condition</th>
+                <th>Min value</th>
+                <th>Max value</th>
+                <th>Recommended action</th>
+                <th>Alert color</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="level-dot" style="background:#2B5F3F"></span>Low / OK</td>
+                <td style="font-family:var(--mono);font-size:11px">indicator ≤ threshold 1</td>
+                <td><input type="number" id="t-low-min" placeholder="—" step="0.01"></td>
+                <td><input type="number" id="t-low-max" placeholder="e.g. 0.3" step="0.01"></td>
+                <td><input type="text" id="t-low-action" placeholder="No action needed"></td>
+                <td><select id="t-low-color"><option value="green">Green</option><option value="amber">Amber</option><option value="red">Red</option></select></td>
+              </tr>
+              <tr>
+                <td><span class="level-dot" style="background:#B8720A"></span>Medium / Watch</td>
+                <td style="font-family:var(--mono);font-size:11px">threshold 1 &lt; ind ≤ threshold 2</td>
+                <td><input type="number" id="t-med-min" placeholder="e.g. 0.3" step="0.01"></td>
+                <td><input type="number" id="t-med-max" placeholder="e.g. 0.6" step="0.01"></td>
+                <td><input type="text" id="t-med-action" placeholder="Monitor closely"></td>
+                <td><select id="t-med-color"><option value="amber">Amber</option><option value="green">Green</option><option value="red">Red</option></select></td>
+              </tr>
+              <tr>
+                <td><span class="level-dot" style="background:#C0392B"></span>High / Alert</td>
+                <td style="font-family:var(--mono);font-size:11px">indicator &gt; threshold 2</td>
+                <td><input type="number" id="t-hi-min" placeholder="e.g. 0.6" step="0.01"></td>
+                <td><input type="number" id="t-hi-max" placeholder="—" step="0.01"></td>
+                <td><input type="text" id="t-hi-action" placeholder="Immediate intervention"></td>
+                <td><select id="t-hi-color"><option value="red">Red</option><option value="amber">Amber</option><option value="green">Green</option></select></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt">
+          <div class="field">
+            <label>Agronomic interpretation (shown to field agronomist)</label>
+            <textarea id="ind-interpretation" rows="2" placeholder="Explain what this indicator means in practical terms for the farmer/agronomist…" style="resize:vertical"></textarea>
+          </div>
+        </div>
+
+        <div class="flex mt" style="justify-content:space-between">
+          <div class="flex">
+            <button class="btn btn-green" onclick="saveIndicator()">Save indicator</button>
+            <button class="btn btn-outline" onclick="newIndicator()">+ New</button>
+            <button class="btn btn-outline" onclick="previewIndicator()">Preview formula</button>
+          </div>
+          <div id="builder-status" style="font-size:11px;color:var(--green);font-family:var(--mono)"></div>
+        </div>
+
+        <div id="preview-result" style="display:none" class="preview-box"></div>
+      </div>
+
+      <!-- Kc CURVES TAB -->
+      <div id="tab-kc" class="panel-body" style="display:none">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Edit monthly crop coefficient (Kc) values for each crop. These values directly affect the ETc = ETo × Kc computation in the water balance. Drag a cell or type a value. The chart updates live.</div>
+        <div id="kc-editor"></div>
+        <div class="flex mt" style="justify-content:space-between">
+          <button class="btn btn-green" onclick="saveKcCurves()">Save Kc curves</button>
+          <button class="btn btn-outline" onclick="resetKcCurves()">Reset to FAO defaults</button>
+        </div>
+      </div>
+
+      <!-- FERTILITY RULES TAB -->
+      <div id="tab-fertility" class="panel-body" style="display:none">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Define the threshold ranges and management actions for each soil parameter. These values drive the Lab & Fertility assessment in the DSS.</div>
+        <div id="fertility-rules-editor"></div>
+        <div class="flex mt">
+          <button class="btn btn-green" onclick="saveFertilityRules()">Save rules</button>
+          <button class="btn btn-outline" onclick="resetFertilityRules()">Reset to FAO defaults</button>
+        </div>
+      </div>
+
+      <!-- DSS SCORING TAB -->
+      <div id="tab-scoring" class="panel-body" style="display:none">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Assign weights to each indicator group to compute an overall parcel health score (0–100). Weights must sum to 100%. Used in the Records tab composite view.</div>
+        <div id="scoring-editor"></div>
+        <div class="flex mt" style="justify-content:space-between">
+          <button class="btn btn-green" onclick="saveScoringWeights()">Save weights</button>
+          <span id="weight-total" style="font-size:13px;font-family:var(--mono);font-weight:600;color:var(--green)">Total: 100%</span>
+        </div>
+      </div>
+
+    </div><!-- /panel -->
+  </div><!-- /main -->
+
+  <!-- RIGHT: Indicator library -->
+  <div class="right-panel">
+    <div class="sidebar-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>Indicator library</span>
+      <span id="ind-count" style="font-size:10px;color:var(--muted);font-weight:400;text-transform:none">0 saved</span>
+    </div>
+    <div id="indicator-library">
+      <!-- Pre-built indicators -->
+    </div>
+  </div>
+
+</div><!-- /layout -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// SUPABASE CONFIG — same as main DSS
+// ═══════════════════════════════════════════════════════════════
+const SB_URL = 'https://gixqtwjyuwzwrnulnkbi.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpeHF0d2p5dXd6d3JudWxua2JpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczNzA2ODksImV4cCI6MjA5Mjk0NjY4OX0.Itt796ybMWRp6sofQ4V-usoJaEfKXyJbxRB_nnoCR7I';
+const sbHeaders = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+let formulaTokens = [];
+let dragData = null;
+let savedIndicators = [];
+let activeIndicatorId = null;
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// ═══════════════════════════════════════════════════════════════
+// DEFAULT DATA — pre-populated from current DSS values
+// ═══════════════════════════════════════════════════════════════
+const DEFAULT_KC = {
+  apple:  [0.60,0.60,0.60,0.75,1.05,1.10,1.10,1.10,1.00,0.85,0.60,0.60],
+  tomato: [0.50,0.50,0.50,0.60,0.75,1.10,1.20,1.15,0.90,0.60,0.50,0.50],
+  olive:  [0.65,0.65,0.65,0.65,0.70,0.70,0.65,0.65,0.65,0.65,0.65,0.65],
+  wheat:  [0.40,0.55,0.80,1.10,1.15,0.90,0.40,0.40,0.40,0.40,0.40,0.40],
+  maize:  [0.30,0.30,0.30,0.40,0.70,1.15,1.20,1.15,0.90,0.50,0.30,0.30],
+};
+
+const DEFAULT_FERTILITY_RULES = [
+  { param:'pH (water)',          var:'ph',      unit:'–',       low:[5.5,6.0], ok:[6.0,7.5], hi:[7.5,8.5],
+    actions:{ low:'Apply lime 2-4 t/ha. Recheck in 2 years.', ok:'No action needed.', hi:'Use chelated micronutrients. Consider acidifying fertilizers.' }},
+  { param:'Organic matter',      var:'om',      unit:'%',       low:[0,1.0],   ok:[2.0,3.5], hi:[3.5,99],
+    actions:{ low:'Apply 20-30 t/ha compost or manure annually.', ok:'Maintain with green manure.', hi:'Excellent — maintain management.' }},
+  { param:'Available P (Olsen)', var:'p_avail', unit:'ppm',     low:[0,10],    ok:[20,50],   hi:[50,999],
+    actions:{ low:'Apply P₂O₅ 80-120 kg/ha.', ok:'Maintenance dose 20-40 kg/ha.', hi:'Reduce or eliminate P applications.' }},
+  { param:'Exchangeable K',      var:'k_exch',  unit:'me/100g', low:[0,0.15],  ok:[0.30,0.80],hi:[0.80,99],
+    actions:{ low:'Apply K₂O 100-150 kg/ha.', ok:'Maintenance dose 40-60 kg/ha.', hi:'No K application needed.' }},
+  { param:'EC (salinity)',       var:'ec',      unit:'dS/m',    low:[0,0],     ok:[0,2.0],   hi:[4.0,99],
+    actions:{ low:'—', ok:'Non-saline — no action.', hi:'Leaching required. Avoid sensitive crops.' }},
+  { param:'ESP (sodicity)',      var:'esp',     unit:'%',       low:[0,0],     ok:[0,8],     hi:[15,99],
+    actions:{ low:'—', ok:'Non-sodic — no action.', hi:'Apply gypsum 4-8 t/ha + leaching.' }},
+];
+
+const DEFAULT_WEIGHTS = [
+  { label:'Water stress / irrigation', key:'water',  value:35 },
+  { label:'Soil fertility',            key:'soil',   value:30 },
+  { label:'NDVI / vegetation health',  key:'ndvi',   value:20 },
+  { label:'Disease / pest risk',       key:'disease',value:10 },
+  { label:'Erosion risk',              key:'erosion',value:5  },
+];
+
+// Pre-built indicators — the framework indicators from the workplan
+const PRESET_INDICATORS = [
+  { id:'wi-001', name:'Water Stress Index', category:'water', crop:'all', temporal:'daily',
+    formula:'(eto × kc − rain) ÷ taw', tokens:[
+      {type:'var',name:'ETo',var:'eto'},{type:'op',val:'×'},{type:'var',name:'Kc',var:'kc'},
+      {type:'op',val:'−'},{type:'var',name:'Rainfall',var:'rain'},{type:'op',val:'÷'},
+      {type:'var',name:'TAW',var:'taw'}],
+    thresholds:{ low:{max:0.1,action:'No irrigation needed'},med:{min:0.1,max:0.3,action:'Plan irrigation within 3-5 days'},hi:{min:0.3,action:'Irrigate now — apply (TAW-SWC)×0.8 mm'}},
+    interpretation:'Ratio of water demand minus supply to total available water. Values >0.3 indicate stress requiring immediate irrigation.' },
+  { id:'wi-002', name:'GDD Accumulation (base 10°C)', category:'climate', crop:'apple', temporal:'daily',
+    formula:'max(tmean − 10, 0)', tokens:[
+      {type:'op',val:'max('},{type:'var',name:'T mean',var:'tmean'},{type:'op',val:'−'},
+      {type:'const',val:'10'},{type:'op',val:', 0)'}],
+    thresholds:{ low:{max:300,action:'Early vegetative stage'},med:{min:300,max:800,action:'Flowering to fruit set — critical period'},hi:{min:800,action:'Fruit development to harvest'}},
+    interpretation:'Cumulative heat units above base temperature of 10°C. Tracks phenological development of apple from budbreak to harvest.' },
+  { id:'wi-003', name:'Chilling Hours (apple — Korçë)', category:'climate', crop:'apple', temporal:'daily',
+    formula:'IF(tmin < 7.2°C, 1, 0)', tokens:[
+      {type:'op',val:'IF('},{type:'var',name:'T min',var:'tmin'},{type:'op',val:'<'},
+      {type:'const',val:'7.2'},{type:'op',val:', 1, 0)'}],
+    thresholds:{ low:{max:600,action:'Insufficient chill — risk of poor flowering'},med:{min:600,max:800,action:'Borderline — monitor'},hi:{min:800,action:'Adequate chill — full bloom expected'}},
+    interpretation:'Count of hours below 7.2°C during dormancy. Apple varieties at Korçë require >800h for normal flowering. Monitor from November.' },
+  { id:'wi-004', name:'NDVI Vegetation Stress', category:'vegetation', crop:'all', temporal:'monthly',
+    formula:'ndvi', tokens:[{type:'var',name:'NDVI',var:'ndvi'}],
+    thresholds:{ low:{max:0.2,action:'Severe stress or bare soil — investigate urgently'},med:{min:0.2,max:0.5,action:'Moderate stress — check irrigation and nutrition'},hi:{min:0.5,action:'Healthy canopy — normal management'}},
+    interpretation:'Sentinel-2 derived NDVI for the parcel. Values below 0.2 indicate severe vegetation stress, bare soil, or crop failure. Fetch monthly from Copernicus.' },
+  { id:'wi-005', name:'Drought Stress Index (olive)', category:'water', crop:'olive', temporal:'monthly',
+    formula:'(eto × kc − rain) ÷ taw', tokens:[
+      {type:'var',name:'ETo',var:'eto'},{type:'op',val:'×'},{type:'var',name:'Kc (olive)',var:'kc'},
+      {type:'op',val:'−'},{type:'var',name:'Rainfall',var:'rain'},{type:'op',val:'÷'},
+      {type:'var',name:'TAW',var:'taw'}],
+    thresholds:{ low:{max:0.2,action:'No stress — olive tolerates mild deficit well'},med:{min:0.2,max:0.45,action:'Monitor — regulated deficit irrigation acceptable'},hi:{min:0.45,action:'Critical drought stress — irrigate, risk of oil yield loss'}},
+    interpretation:'Adapted water stress index for olive. Olive tolerates deficit better than apple or tomato; alert threshold is higher.' },
+  { id:'wi-006', name:'Heat Stress (tomato)', category:'climate', crop:'tomato', temporal:'daily',
+    formula:'tmax', tokens:[{type:'var',name:'T max',var:'tmax'}],
+    thresholds:{ low:{max:32,action:'Normal — no heat stress'},med:{min:32,max:35,action:'Watch — reduce irrigation interval, shade if possible'},hi:{min:35,action:'Severe heat stress — pollen sterility risk, apply evaporative cooling'}},
+    interpretation:'Daily maximum temperature. Tomato pollen viability is severely compromised above 35°C. Monitor during flowering and fruit set (June–July in Lushnje).' },
+  { id:'wi-007', name:'Soil Fertility Score', category:'soil', crop:'all', temporal:'survey',
+    formula:'(ph_score + om_score + p_score + k_score) ÷ 4', tokens:[
+      {type:'op',val:'('},{type:'var',name:'pH score',var:'ph'},{type:'op',val:'+'},
+      {type:'var',name:'OM score',var:'om'},{type:'op',val:'+'},{type:'var',name:'P score',var:'p_avail'},
+      {type:'op',val:'+'},{type:'var',name:'K score',var:'k_exch'},{type:'op',val:') ÷'},
+      {type:'const',val:'4'}],
+    thresholds:{ low:{max:30,action:'Very low fertility — major amendment programme required'},med:{min:30,max:65,action:'Medium fertility — targeted correction per deficient parameter'},hi:{min:65,action:'High fertility — maintenance programme only'}},
+    interpretation:'Composite soil fertility score (0–100) based on pH, organic matter, available P and K. Computed automatically from laboratory analysis.' },
+];
+
+// ═══════════════════════════════════════════════════════════════
+// DRAG & DROP
+// ═══════════════════════════════════════════════════════════════
+function startDrag(e, varId, varName, group) {
+  dragData = { varId, varName, group };
+  e.dataTransfer.setData('text/plain', varId);
+}
+
+function dropVar(e) {
+  e.preventDefault();
+  document.getElementById('formula-zone').classList.remove('drag-over');
+  if(!dragData) return;
+  formulaTokens.push({ type:'var', name:dragData.varName, var:dragData.varId });
+  dragData = null;
+  renderFormula();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FORMULA BUILDER
+// ═══════════════════════════════════════════════════════════════
+function addOp(op) {
+  formulaTokens.push({ type:'op', val:op });
+  renderFormula();
+}
+
+function addConst() {
+  const v = prompt('Enter a numeric constant:');
+  if(v && !isNaN(parseFloat(v))) {
+    formulaTokens.push({ type:'const', val:v });
+    renderFormula();
+  }
+}
+
+function clearFormula() {
+  formulaTokens = [];
+  renderFormula();
+}
+
+function removeToken(i) {
+  formulaTokens.splice(i, 1);
+  renderFormula();
+}
+
+function renderFormula() {
+  const zone = document.getElementById('formula-zone');
+  if(!formulaTokens.length) {
+    zone.innerHTML = '<span class="f-placeholder">← Drag a variable here, or click an operator above</span>';
+    document.getElementById('formula-text').textContent = '—';
+    return;
+  }
+  zone.innerHTML = formulaTokens.map((t, i) => {
+    if(t.type === 'var')   return `<span class="f-token f-var">${t.name}<span class="f-remove" onclick="removeToken(${i})">✕</span></span>`;
+    if(t.type === 'op')    return `<span class="f-op" title="click to remove" onclick="removeToken(${i})">${t.val}</span>`;
+    if(t.type === 'const') return `<span class="f-token f-const">${t.val}<span class="f-remove" onclick="removeToken(${i})">✕</span></span>`;
+    return '';
+  }).join(' ');
+  document.getElementById('formula-text').textContent = formulaTokens.map(t => t.name || t.val || t.val).join(' ');
+}
+
+function previewIndicator() {
+  const box = document.getElementById('preview-result');
+  const formula = formulaTokens.map(t => t.name || t.val).join(' ');
+  if(!formula || formula === '—') { box.style.display='none'; return; }
+  box.style.display='block';
+  box.innerHTML = `
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:8px">Formula preview</div>
+    <div style="font-family:var(--mono);font-size:13px;margin-bottom:12px">${formula}</div>
+    <div style="font-size:11px;color:var(--muted)">
+      To test this formula with real data: enter values in the Survey and Lab tabs of the main DSS, then return here to validate the output against the threshold levels defined above.
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INDICATOR LIBRARY
+// ═══════════════════════════════════════════════════════════════
+function loadIndicatorLibrary() {
+  // Load presets + any saved from localStorage
+  const stored = JSON.parse(localStorage.getItem('qttb_indicators') || '[]');
+  savedIndicators = [...PRESET_INDICATORS, ...stored];
+  renderLibrary();
+}
+
+function renderLibrary() {
+  const lib = document.getElementById('indicator-library');
+  const catColors = { water:'b-b', soil:'b-g', vegetation:'b-g', climate:'b-a', composite:'b-m' };
+  const cropLabels = { all:'All crops', apple:'Apple', tomato:'Tomato', olive:'Olive', wheat:'Wheat', maize:'Maize' };
+
+  lib.innerHTML = savedIndicators.map((ind, i) => `
+    <div class="ind-card ${activeIndicatorId === ind.id ? 'active':''}" onclick="loadIndicator('${ind.id}')">
+      <div class="ind-name">${ind.name}</div>
+      <div class="ind-meta">${ind.formula || ind.tokens?.map(t=>t.name||t.val).join(' ') || '—'}</div>
+      <div class="ind-badges">
+        <span class="badge ${catColors[ind.category]||'b-m'}">${ind.category}</span>
+        <span class="badge b-m">${cropLabels[ind.crop]||ind.crop}</span>
+        <span class="badge b-m">${ind.temporal}</span>
+        ${i < PRESET_INDICATORS.length ? '<span class="badge" style="background:#f0f0f0;color:#999">preset</span>' : '<span class="badge b-g">custom</span>'}
+      </div>
+    </div>`).join('');
+
+  document.getElementById('ind-count').textContent = savedIndicators.length + ' indicators';
+}
+
+function loadIndicator(id) {
+  const ind = savedIndicators.find(i => i.id === id);
+  if(!ind) return;
+  activeIndicatorId = id;
+
+  document.getElementById('ind-name').value          = ind.name || '';
+  document.getElementById('ind-category').value      = ind.category || 'water';
+  document.getElementById('ind-crop').value          = ind.crop || 'all';
+  document.getElementById('ind-temporal').value      = ind.temporal || 'daily';
+  document.getElementById('ind-interpretation').value= ind.interpretation || '';
+
+  formulaTokens = ind.tokens ? JSON.parse(JSON.stringify(ind.tokens)) : [];
+  renderFormula();
+
+  if(ind.thresholds) {
+    const t = ind.thresholds;
+    document.getElementById('t-low-max').value    = t.low?.max ?? '';
+    document.getElementById('t-low-action').value = t.low?.action || '';
+    document.getElementById('t-med-min').value    = t.med?.min ?? '';
+    document.getElementById('t-med-max').value    = t.med?.max ?? '';
+    document.getElementById('t-med-action').value = t.med?.action || '';
+    document.getElementById('t-hi-min').value     = t.hi?.min ?? '';
+    document.getElementById('t-hi-action').value  = t.hi?.action || '';
+  }
+
+  renderLibrary();
+  document.getElementById('builder-status').textContent = '← Loaded: ' + ind.name;
+}
+
+function saveIndicator() {
+  const name = document.getElementById('ind-name').value.trim();
+  if(!name) { alert('Please enter an indicator name.'); return; }
+
+  const ind = {
+    id:   activeIndicatorId || 'custom-' + Date.now(),
+    name,
+    category:       document.getElementById('ind-category').value,
+    crop:           document.getElementById('ind-crop').value,
+    temporal:       document.getElementById('ind-temporal').value,
+    interpretation: document.getElementById('ind-interpretation').value,
+    tokens:         JSON.parse(JSON.stringify(formulaTokens)),
+    formula:        formulaTokens.map(t => t.name || t.val).join(' '),
+    thresholds: {
+      low: { max: parseFloat(document.getElementById('t-low-max').value)||null,   action: document.getElementById('t-low-action').value },
+      med: { min: parseFloat(document.getElementById('t-med-min').value)||null, max: parseFloat(document.getElementById('t-med-max').value)||null, action: document.getElementById('t-med-action').value },
+      hi:  { min: parseFloat(document.getElementById('t-hi-min').value)||null,    action: document.getElementById('t-hi-action').value },
+    },
+    saved_at: new Date().toISOString(),
+  };
+
+  // Save to localStorage (custom indicators only)
+  const custom = JSON.parse(localStorage.getItem('qttb_indicators') || '[]');
+  const idx = custom.findIndex(i => i.id === ind.id);
+  if(idx >= 0) custom[idx] = ind; else custom.push(ind);
+  localStorage.setItem('qttb_indicators', JSON.stringify(custom));
+
+  activeIndicatorId = ind.id;
+  loadIndicatorLibrary();
+  document.getElementById('builder-status').textContent = '✓ Saved: ' + name;
+}
+
+function newIndicator() {
+  activeIndicatorId = null;
+  formulaTokens = [];
+  renderFormula();
+  ['ind-name','ind-interpretation','t-low-min','t-low-max','t-low-action',
+   't-med-min','t-med-max','t-med-action','t-hi-min','t-hi-max','t-hi-action'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('ind-category').value = 'water';
+  document.getElementById('ind-crop').value = 'all';
+  document.getElementById('ind-temporal').value = 'daily';
+  document.getElementById('builder-status').textContent = '';
+  renderLibrary();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Kc CURVES EDITOR
+// ═══════════════════════════════════════════════════════════════
+let kcData = JSON.parse(JSON.stringify(DEFAULT_KC));
+
+function renderKcEditor() {
+  const container = document.getElementById('kc-editor');
+  const cropColors = { apple:'#2B5F3F', tomato:'#C0392B', olive:'#B8720A', wheat:'#185FA5', maize:'#7A5C2E' };
+  container.innerHTML = Object.entries(kcData).map(([crop, values]) => `
+    <div style="margin-bottom:20px">
+      <div style="font-size:12px;font-weight:600;color:${cropColors[crop]||'#333'};margin-bottom:8px;text-transform:capitalize">
+        ${crop} ${crop==='apple'?'— Korçë':crop==='tomato'?'— Lushnje':crop==='olive'?'— Vlorë':''}
+      </div>
+      <div class="kc-grid">
+        ${MONTHS.map((m, i) => `
+          <div class="kc-month">
+            <div class="month-label">${m}</div>
+            <input type="number" id="kc-${crop}-${i}" value="${values[i]}" step="0.05" min="0" max="1.5"
+              oninput="updateKcBar('${crop}',${i},this.value)" style="border-color:${cropColors[crop]}40">
+            <div class="kc-bar-wrap">
+              <div class="kc-bar" id="bar-${crop}-${i}" style="height:${values[i]/1.3*60}px;background:${cropColors[crop]}"></div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function updateKcBar(crop, month, val) {
+  kcData[crop][month] = parseFloat(val) || 0;
+  const bar = document.getElementById(`bar-${crop}-${month}`);
+  if(bar) bar.style.height = Math.min(parseFloat(val)/1.3, 1) * 60 + 'px';
+}
+
+function saveKcCurves() {
+  localStorage.setItem('qttb_kc_curves', JSON.stringify(kcData));
+  alert('Kc curves saved. They will be used in the Water Balance DSS on next load.');
+}
+
+function resetKcCurves() {
+  kcData = JSON.parse(JSON.stringify(DEFAULT_KC));
+  renderKcEditor();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FERTILITY RULES EDITOR
+// ═══════════════════════════════════════════════════════════════
+let fertilityRules = JSON.parse(JSON.stringify(DEFAULT_FERTILITY_RULES));
+
+function renderFertilityEditor() {
+  const c = document.getElementById('fertility-rules-editor');
+  c.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:11px">
+      <thead>
+        <tr style="background:var(--bg);border-bottom:1px solid var(--border)">
+          <th style="padding:7px 10px;font-weight:500;text-align:left;color:var(--muted)">Parameter</th>
+          <th style="padding:7px 10px;font-weight:500;text-align:center;color:#C0392B">Low threshold</th>
+          <th style="padding:7px 10px;font-weight:500;text-align:center;color:#2B5F3F">Optimal range</th>
+          <th style="padding:7px 10px;font-weight:500;text-align:center;color:#B8720A">High threshold</th>
+          <th style="padding:7px 10px;font-weight:500;color:var(--muted)">Unit</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${fertilityRules.map((r, i) => `
+          <tr style="border-bottom:0.5px solid var(--border)">
+            <td style="padding:7px 10px;font-weight:500">${r.param}</td>
+            <td style="padding:5px 8px;text-align:center">
+              <div style="display:flex;gap:4px;justify-content:center;align-items:center">
+                <input type="number" value="${r.low[0]}" step="0.1" style="width:55px;padding:3px;border:1px solid var(--border);border-radius:4px;text-align:center;font-size:11px" onchange="fertilityRules[${i}].low[0]=parseFloat(this.value)">
+                <span style="color:var(--muted)">–</span>
+                <input type="number" value="${r.low[1]}" step="0.1" style="width:55px;padding:3px;border:1px solid var(--border);border-radius:4px;text-align:center;font-size:11px;border-color:#C0392B40" onchange="fertilityRules[${i}].low[1]=parseFloat(this.value)">
+              </div>
+            </td>
+            <td style="padding:5px 8px;text-align:center">
+              <div style="display:flex;gap:4px;justify-content:center;align-items:center">
+                <input type="number" value="${r.ok[0]}" step="0.1" style="width:55px;padding:3px;border:1px solid #2B5F3F40;border-radius:4px;text-align:center;font-size:11px" onchange="fertilityRules[${i}].ok[0]=parseFloat(this.value)">
+                <span style="color:var(--muted)">–</span>
+                <input type="number" value="${r.ok[1]}" step="0.1" style="width:55px;padding:3px;border:1px solid #2B5F3F40;border-radius:4px;text-align:center;font-size:11px" onchange="fertilityRules[${i}].ok[1]=parseFloat(this.value)">
+              </div>
+            </td>
+            <td style="padding:5px 8px;text-align:center">
+              <input type="number" value="${r.hi[0]}" step="0.1" style="width:55px;padding:3px;border:1px solid #B8720A40;border-radius:4px;text-align:center;font-size:11px" onchange="fertilityRules[${i}].hi[0]=parseFloat(this.value)">
+            </td>
+            <td style="padding:7px 10px;color:var(--muted);font-family:var(--mono)">${r.unit}</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);background:var(--bg)">
+            <td colspan="5" style="padding:4px 10px">
+              <div style="display:flex;gap:12px;font-size:11px">
+                <span style="color:#C0392B;font-weight:500">Low: </span>
+                <input type="text" value="${r.actions.low}" style="flex:1;border:none;background:transparent;font-size:11px;color:var(--muted)" onchange="fertilityRules[${i}].actions.low=this.value">
+                <span style="color:#2B5F3F;font-weight:500">OK: </span>
+                <input type="text" value="${r.actions.ok}" style="flex:1;border:none;background:transparent;font-size:11px;color:var(--muted)" onchange="fertilityRules[${i}].actions.ok=this.value">
+                <span style="color:#B8720A;font-weight:500">High: </span>
+                <input type="text" value="${r.actions.hi}" style="flex:1;border:none;background:transparent;font-size:11px;color:var(--muted)" onchange="fertilityRules[${i}].actions.hi=this.value">
+              </div>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function saveFertilityRules() {
+  localStorage.setItem('qttb_fertility_rules', JSON.stringify(fertilityRules));
+  alert('Fertility rules saved. They will apply in the Lab & Fertility tab on next load.');
+}
+
+function resetFertilityRules() {
+  fertilityRules = JSON.parse(JSON.stringify(DEFAULT_FERTILITY_RULES));
+  renderFertilityEditor();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DSS SCORING WEIGHTS
+// ═══════════════════════════════════════════════════════════════
+let weights = JSON.parse(JSON.stringify(DEFAULT_WEIGHTS));
+
+function renderScoringEditor() {
+  const c = document.getElementById('scoring-editor');
+  c.innerHTML = weights.map((w, i) => `
+    <div class="weight-row">
+      <span class="weight-label">${w.label}</span>
+      <input type="range" class="weight-slider" min="0" max="100" value="${w.value}"
+        oninput="updateWeight(${i},this.value)">
+      <span class="weight-pct" id="wp-${i}">${w.value}%</span>
+    </div>`).join('') + `
+    <div style="margin-top:12px;padding:10px 0;border-top:1px solid var(--border);font-size:11px;color:var(--muted)">
+      Composite score = Σ (indicator_score × weight). Each indicator is normalised 0–100 before weighting.
+      The total must equal 100% for the composite score to be meaningful.
+    </div>`;
+}
+
+function updateWeight(i, val) {
+  weights[i].value = parseInt(val);
+  document.getElementById('wp-'+i).textContent = val + '%';
+  const total = weights.reduce((s, w) => s + w.value, 0);
+  const el = document.getElementById('weight-total');
+  el.textContent = 'Total: ' + total + '%';
+  el.style.color = total === 100 ? 'var(--green)' : 'var(--red)';
+}
+
+function saveScoringWeights() {
+  const total = weights.reduce((s,w) => s+w.value, 0);
+  if(total !== 100) { alert(`Weights sum to ${total}%. Please adjust to reach 100% before saving.`); return; }
+  localStorage.setItem('qttb_scoring_weights', JSON.stringify(weights));
+  alert('Scoring weights saved.');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SUPABASE SAVE — push all config as one record
+// ═══════════════════════════════════════════════════════════════
+async function saveAllToSupabase() {
+  const config = {
+    indicators:     JSON.parse(localStorage.getItem('qttb_indicators') || '[]'),
+    kc_curves:      JSON.parse(localStorage.getItem('qttb_kc_curves') || '{}'),
+    fertility_rules:JSON.parse(localStorage.getItem('qttb_fertility_rules') || '[]'),
+    scoring_weights:JSON.parse(localStorage.getItem('qttb_scoring_weights') || '[]'),
+    saved_at:       new Date().toISOString(),
+    saved_by:       'expert-panel-v1',
+  };
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/dss_config`, {
+      method:'POST',
+      headers:{ ...sbHeaders, 'Prefer':'resolution=ignore-duplicates' },
+      body: JSON.stringify(config)
+    });
+    if(r.ok) alert('✓ All configuration saved to database. The DSS will load it on next session.');
+    else {
+      // Table might not exist yet — save locally is still fine
+      alert('Saved locally. To sync to database, run schema_v2.sql in Supabase first (add dss_config table).');
+    }
+  } catch(e) {
+    alert('Saved locally. Database sync requires Supabase connection.');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════════════════════════════
+function switchTab(name, el) {
+  ['builder','kc','fertility','scoring'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===name ? 'block' : 'none';
+  });
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+
+  if(name==='kc')        renderKcEditor();
+  if(name==='fertility') renderFertilityEditor();
+  if(name==='scoring')   renderScoringEditor();
+}
+
+function showSection(name) {
+  document.querySelector(`.tab-btn[onclick="switchTab('${name}',this)"]`)?.click();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  loadIndicatorLibrary();
+  // Load preset first indicator
+  loadIndicator('wi-001');
+});
+</script>
+
+</body>
+</html>
