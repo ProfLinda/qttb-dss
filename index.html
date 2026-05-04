@@ -1439,9 +1439,43 @@
   <div id="tab-advisory" style="display:none">
     <div class="form-body">
 
-      <!-- CONFIGURATION -->
-      <div class="card">
-        <div class="card-title"><span class="card-title-dot"></span>Farmer advisory — configuration</div>
+      <!-- STEP 1: SELECT RECORD -->
+      <div class="card" id="advisory-source-card">
+        <div class="card-title"><span class="card-title-dot"></span>Step 1 — Select survey record</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">
+          The advisory is generated from a saved survey record. Choose which parcel this advisory is for.
+        </div>
+
+        <!-- Current form indicator -->
+        <div id="advisory-current-survey" style="padding:10px 14px;border:1px solid var(--border);border-radius:6px;margin-bottom:12px;display:flex;align-items:center;gap:12px">
+          <div style="flex:1">
+            <div style="font-size:12px;font-weight:500" id="advisory-survey-label">No survey loaded in form</div>
+            <div style="font-size:11px;color:var(--text-muted)" id="advisory-survey-meta">Go to Survey tab → fill or load a record first</div>
+          </div>
+          <button class="btn btn-accent" onclick="useCurrentFormForAdvisory()" id="advisory-use-current-btn" style="font-size:11px;padding:5px 14px;opacity:0.4" disabled>Use this record</button>
+        </div>
+
+        <!-- Or pick from saved -->
+        <div style="font-size:11px;font-weight:500;color:var(--text-muted);margin-bottom:8px">— or pick from saved records —</div>
+        <div id="advisory-record-picker" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:6px">
+          <div style="padding:16px;text-align:center;color:var(--text-muted);font-size:12px">Loading records…</div>
+        </div>
+      </div>
+
+      <!-- STEP 2: FARMER INFO (shown after record selected) -->
+      <div class="card" id="advisory-farmer-card" style="display:none">
+        <div class="card-title"><span class="card-title-dot"></span>Step 2 — Farmer &amp; advisory settings</div>
+
+        <!-- Source badge -->
+        <div id="advisory-source-badge" style="padding:8px 12px;background:var(--bg-secondary);border-radius:6px;margin-bottom:14px;font-size:12px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:16px">📍</span>
+          <div>
+            <span id="advisory-badge-location" style="font-weight:500"></span>
+            <span id="advisory-badge-meta" style="color:var(--text-muted);margin-left:8px"></span>
+          </div>
+          <button onclick="resetAdvisorySource()" style="margin-left:auto;font-size:11px;background:none;border:1px solid var(--border);border-radius:4px;padding:3px 10px;cursor:pointer;color:var(--text-muted)">Change record</button>
+        </div>
+
         <div class="grid-3">
           <div class="field">
             <label>Farmer name</label>
@@ -1474,7 +1508,6 @@
           </div>
         </div>
 
-        <!-- Advisory sections to include -->
         <div style="margin-top:12px;padding:10px 12px;background:var(--bg-secondary);border-radius:6px;">
           <div style="font-size:11px;font-weight:500;color:var(--ink);margin-bottom:8px">Include in advisory:</div>
           <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px">
@@ -1496,7 +1529,7 @@
         </div>
       </div>
 
-      <!-- ADVISORY PREVIEW -->
+      <!-- ADVISORY OUTPUT -->
       <div id="advisory-output" style="display:none"></div>
 
     </div>
@@ -4370,6 +4403,11 @@ function generateAdvisoryFromRecord(id) {
 // FARMER ADVISORY GENERATOR
 // ═══════════════════════════════════════════════════════════════════════════
 function generateAdvisory() {
+  if(!_advisoryData) {
+    showStatus('error','Please select a survey record first — click "Use this record" or pick from the list above');
+    return;
+  }
+  const d = _advisoryData; // all survey data from the selected record
   const lang    = document.getElementById('advisory_lang')?.value || 'en';
   const sq      = lang === 'sq';
   const farmer  = document.getElementById('farmer_name')?.value    || (sq ? 'Fermeri' : 'Farmer');
@@ -4377,13 +4415,12 @@ function generateAdvisory() {
   const advDate = document.getElementById('advisory_date')?.value  || new Date().toISOString().slice(0,10);
   const parcel  = document.getElementById('farmer_parcel')?.value  || '';
   const areaHa  = document.getElementById('farmer_area')?.value    || '';
-  const commune = document.getElementById('commune')?.value        || '—';
-  const ref     = document.getElementById('ref_no')?.value         || '';
-  const surveyor= document.getElementById('surveyor')?.value       || '';
-  const gpsN    = document.getElementById('gps_n')?.value          || '';
-  const gpsE    = document.getElementById('gps_e')?.value          || '';
-
-  const cropKey = document.getElementById('qttb_area')?.value || '';
+  const commune = d.commune || '—';
+  const ref     = d.ref_no  || '';
+  const surveyor= d.surveyor|| '';
+  const gpsN    = d.gps_n   || '';
+  const gpsE    = d.gps_e   || '';
+  const cropKey = d.qttb_area || '';
   const CROP_NAMES = {
     en: {korce_apple:'Apple',lushnje_tomato:'Tomato',vlore_olive:'Olive',
          fushe_kruje_apple:'Apple (trial)',fushe_kruje_tomato:'Tomato (trial)',fushe_kruje_olive:'Olive (trial)'},
@@ -4392,39 +4429,33 @@ function generateAdvisory() {
   };
   const crop = (CROP_NAMES[lang]||CROP_NAMES['en'])[cropKey] || cropKey || '—';
 
-  // Data from soil form
-  const soilType    = document.getElementById('soil_type')?.value     || '—';
-  const suitability = document.getElementById('flooding_info')?.value  || '—';
-  const taw         = document.getElementById('taw_100')?.value        || '—';
-  const erosionIdx  = document.getElementById('erosion_risk')?.value   || '';
+  // All data from the selected record
+  const soilType    = d.soil_type     || '—';
+  const suitability = d.flooding_info || '—';
+  const taw         = d.taw_100       || '—';
+  const erosionIdx  = d.erosion_risk  || '';
   const erosion     = ({0:sq?'Asnjë':'None',1:sq?'E ulët':'Low',2:sq?'Mesatare':'Moderate',3:sq?'E lartë':'High'})[erosionIdx] || '—';
-  const observations= document.getElementById('observations')?.value   || '';
+  const observations= d.observations  || '';
+  const ndvi        = d.ndvi          || '';
+  const eto         = d.eto           || '';
+  const rain        = d.rainfall_monthly || '';
+  const temp        = d.temp_mean     || '';
+  const wstress     = d.water_stress_class || '';
+  const drisk       = d.disease_risk  || '';
+  const gdd         = d.gdd           || '';
+  const chill       = d.chill_hours   || '';
 
-  // Meteo data
-  const ndvi   = document.getElementById('ndvi')?.value            || '';
-  const eto    = document.getElementById('eto')?.value             || '';
-  const rain   = document.getElementById('rainfall_monthly')?.value|| '';
-  const temp   = document.getElementById('temp_mean')?.value       || '';
-  const wstress= document.getElementById('water_stress_class')?.value || '';
-  const drisk  = document.getElementById('disease_risk')?.value    || '';
-  const gdd    = document.getElementById('gdd')?.value             || '';
-  const chill  = document.getElementById('chill_hours')?.value     || '';
-
-  // Water balance alert
-  const wbAlertTitle = document.getElementById('wb-alert-title')?.textContent || '';
-  const wbAlertText  = document.getElementById('wb-alert-text')?.textContent  || '';
-  const wbVol        = document.getElementById('wb-volume')?.textContent      || '';
+  // Water balance alert — from live DSS if record is the current form, else from stored data
+  const wbAlertTitle = d.wb_alert || '';
+  const wbAlertText  = d.wb_text  || '';
+  const wbVol        = d.wb_volume|| '';
   const hasIrrAlert  = wbAlertTitle.includes('required') || wbAlertTitle.includes('advisable') ||
                        wbAlertTitle.includes('kërkohet') || wbAlertTitle.includes('rekomandohet');
   const irrUrgent    = wbAlertTitle.includes('required') || wbAlertTitle.includes('kërkohet');
 
-  // Fertilization
-  const fertEl  = document.getElementById('fertilization-output');
-  const fertText = fertEl ? fertEl.innerText.slice(0, 400).trim() : '';
-  const fertN   = document.getElementById('lab_n_total')?.value ? document.getElementById('fertilization-output')?.querySelector?.('.n-val')?.textContent : '';
-
-  // Lab assessment
-  const fertility = document.getElementById('fertility-badge')?.textContent?.trim() || '';
+  // Fertilization + fertility from lab tab (only if current form was used)
+  const fertText  = d.fert_output || '';
+  const fertility = d.fertility   || '';
 
   // What to include
   const incSoil    = document.getElementById('inc_soil')?.checked !== false;
@@ -4719,12 +4750,217 @@ function switchTab(name, el) {
 
   if(name==='records') renderRecords();
   if(name==='map') { initMap(); setTimeout(()=>mapInstance&&mapInstance.invalidateSize(),300); }
-  if(name==='advisory') { document.getElementById('advisory_date').value = new Date().toISOString().slice(0,10); }
+  if(name==='advisory') { initAdvisoryTab(); }
 
   // Record count only on Records tab
   const rc = document.getElementById('record-count');
   if(rc) rc.style.display = name==='records' ? 'inline' : 'none';
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FARMER ADVISORY — RECORD-LINKED
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Holds the data the advisory will use — populated from a specific record
+let _advisoryData = null;
+
+function initAdvisoryTab() {
+  document.getElementById('advisory_date').value = new Date().toISOString().slice(0,10);
+  refreshCurrentSurveyIndicator();
+  buildAdvisoryRecordPicker();
+}
+
+// Show what's currently in the survey form
+function refreshCurrentSurveyIndicator() {
+  const commune   = document.getElementById('commune')?.value?.trim();
+  const area      = document.getElementById('qttb_area')?.value;
+  const ref       = document.getElementById('ref_no')?.value?.trim();
+  const date      = document.getElementById('survey_date')?.value;
+  const ndvi      = document.getElementById('ndvi')?.value?.trim();
+  const AREA_LABELS = {
+    fushe_kruje_apple:'Fushë Krujë — Apple', fushe_kruje_tomato:'Fushë Krujë — Tomato',
+    fushe_kruje_olive:'Fushë Krujë — Olive', korce_apple:'Korçë — Apple',
+    lushnje_tomato:'Lushnje — Tomato', vlore_olive:'Vlorë — Olive',
+  };
+
+  const label = document.getElementById('advisory-survey-label');
+  const meta  = document.getElementById('advisory-survey-meta');
+  const btn   = document.getElementById('advisory-use-current-btn');
+
+  if(commune || area) {
+    const areaLabel = AREA_LABELS[area] || area || '—';
+    label.textContent = `${commune||'—'} · ${areaLabel}${ref ? ' · Ref: '+ref : ''}`;
+    meta.textContent  = `Date: ${date||'—'} · NDVI: ${ndvi||'—'} · ${ndvi ? 'Satellite data available' : 'No meteo data yet'}`;
+    btn.disabled  = false;
+    btn.style.opacity = '1';
+  } else {
+    label.textContent = 'No survey loaded in form';
+    meta.textContent  = 'Go to Survey tab → click a location button or load a saved record';
+    btn.disabled  = true;
+    btn.style.opacity = '0.4';
+  }
+}
+
+function useCurrentFormForAdvisory() {
+  const get = id => document.getElementById(id)?.value?.trim() || '';
+  const AREA_LABELS = {
+    fushe_kruje_apple:'Fushë Krujë — Apple', fushe_kruje_tomato:'Fushë Krujë — Tomato',
+    fushe_kruje_olive:'Fushë Krujë — Olive', korce_apple:'Korçë — Apple',
+    lushnje_tomato:'Lushnje — Tomato', vlore_olive:'Vlorë — Olive',
+  };
+  const area = get('qttb_area');
+
+  _advisoryData = {
+    commune:      get('commune'),
+    district:     get('district'),
+    qttb_area:    area,
+    area_label:   AREA_LABELS[area] || area || '—',
+    ref_no:       get('ref_no'),
+    survey_date:  get('survey_date'),
+    surveyor:     get('surveyor'),
+    gps_n:        get('gps_n'),
+    gps_e:        get('gps_e'),
+    soil_type:    get('soil_type'),
+    flooding_info:get('flooding_info'),
+    taw_100:      get('taw_100'),
+    erosion_risk: get('erosion_risk'),
+    observations: get('observations'),
+    ndvi:         get('ndvi'),
+    eto:          get('eto'),
+    rainfall_monthly: get('rainfall_monthly'),
+    temp_mean:    get('temp_mean'),
+    water_stress_class: get('water_stress_class'),
+    disease_risk: get('disease_risk'),
+    gdd:          get('gdd'),
+    chill_hours:  get('chill_hours'),
+    parcel_area_m2: get('parcel_area_m2'),
+    // Water balance alert (from the live DOM)
+    wb_alert:     document.getElementById('wb-alert-title')?.textContent || '',
+    wb_text:      document.getElementById('wb-alert-text')?.textContent  || '',
+    wb_volume:    document.getElementById('wb-volume')?.textContent      || '',
+    // Fertility (from lab tab rendered output)
+    fertility:    document.getElementById('fertility-badge')?.textContent?.trim() || '',
+    fert_output:  document.getElementById('fertilization-output')?.innerText?.slice(0,400) || '',
+  };
+
+  showAdvisoryStep2();
+}
+
+function pickRecordForAdvisory(recordId, source) {
+  let rec;
+  if(source === 'local') {
+    rec = loadRecords().find(r => r.id === recordId);
+    if(!rec) return;
+    const s = rec.soil || {}, m = rec.meteo || {};
+    const AREA_LABELS = {
+      fushe_kruje_apple:'Fushë Krujë — Apple', fushe_kruje_tomato:'Fushë Krujë — Tomato',
+      fushe_kruje_olive:'Fushë Krujë — Olive', korce_apple:'Korçë — Apple',
+      lushnje_tomato:'Lushnje — Tomato', vlore_olive:'Vlorë — Olive',
+    };
+    const area = s.qttb_area || '';
+    _advisoryData = {
+      commune: s.commune||'', district: s.district||'',
+      qttb_area: area, area_label: AREA_LABELS[area]||area||'—',
+      ref_no: s.ref_no||'', survey_date: s.survey_date||'',
+      surveyor: s.surveyor||'', gps_n: s.gps_n||'', gps_e: s.gps_e||'',
+      soil_type: s.soil_type||'', flooding_info: s.flooding_info||'',
+      taw_100: s.taw_100||'', erosion_risk: s.erosion_risk||'',
+      observations: s.observations||'',
+      ndvi: m.ndvi||'', eto: m.eto||'', rainfall_monthly: m.rainfall_monthly||'',
+      temp_mean: m.temp_mean||'', water_stress_class: m.water_stress_class||'',
+      disease_risk: m.disease_risk||'', gdd: m.gdd||'', chill_hours: m.chill_hours||'',
+      parcel_area_m2: s.parcel_area_m2||'',
+      wb_alert: '', wb_text: '', wb_volume: '', fertility: '', fert_output: '',
+    };
+  } else {
+    // DB record
+    const r = (window._dbRecords||[]).find(r => r.id === recordId);
+    if(!r) return;
+    const AREA_LABELS = {
+      fushe_kruje_apple:'Fushë Krujë — Apple', fushe_kruje_tomato:'Fushë Krujë — Tomato',
+      fushe_kruje_olive:'Fushë Krujë — Olive', korce_apple:'Korçë — Apple',
+      lushnje_tomato:'Lushnje — Tomato', vlore_olive:'Vlorë — Olive',
+    };
+    const area = r.qttb_area||'';
+    _advisoryData = {
+      commune: r.commune||'', district: r.district||'',
+      qttb_area: area, area_label: AREA_LABELS[area]||area||'—',
+      ref_no: r.ref_no||'', survey_date: r.survey_date||'',
+      surveyor: r.surveyor||'', gps_n: r.gps_n||'', gps_e: r.gps_e||'',
+      soil_type: r.soil_type||'', flooding_info: r.flooding_info||'',
+      taw_100: r.taw_100||'', erosion_risk: '',
+      observations: '',
+      ndvi: r.ndvi||'', eto: r.eto||'', rainfall_monthly: '',
+      temp_mean: r.temp_mean||'', water_stress_class: r.water_stress_class||'',
+      disease_risk: r.disease_risk||'', gdd: '', chill_hours: '',
+      parcel_area_m2: r.parcel_area_m2||'',
+      wb_alert: '', wb_text: '', wb_volume: '', fertility: r.fertility_class||'', fert_output: '',
+    };
+  }
+  showAdvisoryStep2();
+}
+
+function showAdvisoryStep2() {
+  if(!_advisoryData) return;
+  document.getElementById('advisory-source-card').style.display = 'none';
+  document.getElementById('advisory-farmer-card').style.display = 'block';
+  document.getElementById('advisory-output').style.display = 'none';
+
+  // Update badge
+  const d = _advisoryData;
+  document.getElementById('advisory-badge-location').textContent = `${d.commune||'—'} · ${d.area_label}`;
+  document.getElementById('advisory-badge-meta').textContent =
+    `Ref: ${d.ref_no||'—'} · ${d.survey_date||'—'} · NDVI: ${d.ndvi||'—'}`;
+}
+
+function resetAdvisorySource() {
+  _advisoryData = null;
+  document.getElementById('advisory-source-card').style.display = 'block';
+  document.getElementById('advisory-farmer-card').style.display = 'none';
+  document.getElementById('advisory-output').style.display = 'none';
+  buildAdvisoryRecordPicker();
+}
+
+function buildAdvisoryRecordPicker() {
+  const picker = document.getElementById('advisory-record-picker');
+  if(!picker) return;
+
+  const localRecs = loadRecords();
+  const dbRecs    = window._dbRecords || [];
+  const all = [
+    ...localRecs.map(r => ({ id:r.id, source:'local', commune:r.soil?.commune||'—',
+      area:r.soil?.qttb_area||'—', ref:r.soil?.ref_no||'—', date:r.soil?.survey_date||'—', ndvi:r.meteo?.ndvi||'' })),
+    ...dbRecs.map(r => ({ id:r.id, source:'db', commune:r.commune||'—',
+      area:r.qttb_area||'—', ref:r.ref_no||'—', date:r.survey_date||'—', ndvi:r.ndvi||'' })),
+  ];
+
+  const AREA_SHORT = {
+    fushe_kruje_apple:'FK–Apple', fushe_kruje_tomato:'FK–Tomato', fushe_kruje_olive:'FK–Olive',
+    korce_apple:'Korçë–Apple', lushnje_tomato:'Lushnje–Tomato', vlore_olive:'Vlorë–Olive',
+  };
+
+  if(!all.length) {
+    picker.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px">No saved records yet. Fill a survey first.</div>';
+    return;
+  }
+
+  picker.innerHTML = all.map(r => {
+    const areaShort = AREA_SHORT[r.area]||r.area||'—';
+    const srcBadge  = r.source==='db'
+      ? '<span style="font-size:9px;background:#E6F1FB;color:#185FA5;padding:1px 6px;border-radius:10px;margin-left:5px">DB</span>'
+      : '<span style="font-size:9px;background:#F1EFE8;color:#6B6860;padding:1px 6px;border-radius:10px;margin-left:5px">local</span>';
+    return `<div onclick="pickRecordForAdvisory(${r.id},'${r.source}')"
+      style="padding:10px 14px;cursor:pointer;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:10px;transition:background 0.1s"
+      onmouseover="this.style.background='var(--bg-secondary)'" onmouseout="this.style.background=''">
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:500">${r.commune} · ${areaShort}${srcBadge}</div>
+        <div style="font-size:11px;color:var(--text-muted)">Ref: ${r.ref} · ${r.date}${r.ndvi?' · NDVI:'+r.ndvi:''}</div>
+      </div>
+      <span style="color:var(--text-muted);font-size:16px">›</span>
+    </div>`;
+  }).join('');
+}
+
 
 buildHorizons();
 updateRecordCount();
